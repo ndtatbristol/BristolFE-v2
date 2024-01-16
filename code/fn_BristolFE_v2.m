@@ -61,7 +61,11 @@ for s = 1:numel(steps)
         [res{s}.dsp, fld, res{s}.frc, res{s}.fld_time] = fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, frc_gi, frcs, dsp_gi, dsps, hist_gi, f_every_n, options.use_gpu_if_present);
         
         %Convert field output to element values
-        res{s}.fld = fn_get_plot_vals_v3(fld, mats.gl_lookup, mod.els, mats.M);
+        if ~isempty(fld)
+            res{s}.fld = fn_get_plot_vals_v3(fld, mats.gl_lookup, mod.els, mats.M);
+        else
+            res{s}.fld = [];
+        end
         
     end
 end

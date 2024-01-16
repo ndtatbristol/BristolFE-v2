@@ -15,14 +15,14 @@ bulk_modulus = velocity ^ 2 * density;
 %centre frequency (used for element size calc)
 centre_freq = 5e6;
 number_of_cycles = 4;
-els_per_wavelength = 16;
+els_per_wavelength = 4;
 
 %main geometry
 model_corners = [
     -5, -8
     5, -8
     5, 8
-    -5, 8] * 1e-3 * 4;
+    -5, 8] * 1e-3;
 
 abs_layer_thick = 2e-3;
 
@@ -31,7 +31,9 @@ safety_factor = 3;
 %For the processing
 time_pts = 4000;
 
-field_output_every_n_frames = inf;
+%Eventually there needs to be a selector for what field outputs are stored
+%- at present it is ONLY KE.
+field_output_every_n_frames = 20;
 
 trans_width = 5e-3;
 trans_in_water = 1;
