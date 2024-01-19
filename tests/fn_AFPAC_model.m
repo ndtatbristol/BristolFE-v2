@@ -102,16 +102,19 @@ main.mod = fn_add_fluid_solid_interface_els(main.mod);
 t = 1;
 trans1  = trans_cent - trans_size / 2 * [cosd(trans_angd), sind(trans_angd)];
 trans2  = trans_cent + trans_size / 2 * [cosd(trans_angd), sind(trans_angd)];
-[main.mod.tx_rx{t}.nds, s] = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
-main.mod.tx_rx{t}.wt_by_dof = [zeros(size(main.mod.tx_rx{t}.nds, 1), 3), ones(size(main.mod.tx_rx{t}.nds))];
+[main.tx{t}.nds, s] = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
+main.tx{t}.dfs= ones(size(main.tx{t}.nds)) * 4;
+
+% main.steps{t}.load.frc_nds = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
+% main.steps{t}.load.frc_dfs = ones(size(main.steps{t}.load.frc_nds)) * 4;
 
 %Subdomains
 a = linspace(0,2*pi, 361)';
 for d = 1:numel(subdomain)
     inner_bdry = subdomain(d).cent + [cos(a), sin(a)] * subdomain(d).inner_rad;
     main.doms{d} = fn_create_L_domain(main.mod, inner_bdry, abs_layer_thick);
-    main.doms{d}.mod.bndry_pts = inner_bdry;
-    main.doms{d}.mod.centre = subdomain(d).cent;
+    % main.doms{d}.mod.bndry_pts = inner_bdry;
+    % main.doms{d}.mod.centre = subdomain(d).cent;
 end
 
 
@@ -125,7 +128,7 @@ for d = 1:numel(subdomain)
         main.doms{d}.scats{s}.mod.el_mat_i = main.doms{d}.mod.el_mat_i;
         main.doms{d}.scats{s}.mod.el_abs_i = main.doms{d}.mod.el_abs_i;
         main.doms{d}.scats{s}.mod.el_typ_i = main.doms{d}.mod.el_typ_i;
-        main.doms{d}.scats{s}.mod.bdry_lys2 = main.doms{d}.mod.bdry_lys2;
+        main.doms{d}.scats{s}.mod.bdry_lyrs = main.doms{d}.mod.bdry_lyrs;
         main.doms{d}.scats{s}.mod.main_nd_i = main.doms{d}.mod.main_nd_i;
         main.doms{d}.scats{s}.mod.main_el_i = main.doms{d}.mod.main_el_i;
 
@@ -159,7 +162,7 @@ for d = 1:numel(subdomain)
                 % [~, ~, main.doms{i}.scats{j}.mod.els, main.doms{i}.scats{j}.mod.el_mat_i, main.doms{i}.scats{j}.mod.el_abs_i, main.doms{i}.scats{j}.mod.el_typ_i] = ...
                 %     fn_remove_unused_elements(~el_in_defect, main.doms{i}.scats{j}.mod.els, main.doms{i}.scats{j}.mod.el_mat_i, main.doms{i}.scats{j}.mod.el_abs_i, main.doms{i}.scats{j}.mod.el_typ_i);
                 % [main.doms{i}.scats{j}.mod.nds, main.doms{i}.scats{j}.mod.els, old_nds, ~] = fn_remove_unused_nodes(main.doms{i}.scats{j}.mod.nds, main.doms{i}.scats{j}.mod.els);
-                % main.doms{i}.scats{j}.mod.bdry_lys2 = main.doms{i}.scats{j}.mod.bdry_lys2(old_nds);
+                % main.doms{i}.scats{j}.mod.bdry_lyrs = main.doms{i}.scats{j}.mod.bdry_lyrs(old_nds);
                 % main.doms{i}.scats{j}.mod.main_nd_i = main.doms{i}.scats{j}.mod.main_nd_i(old_nds);
                 % main.doms{i}.scats{j}.mod.main_el_i = main.doms{i}.scats{j}.mod.main_el_i(old_nds);
 
@@ -207,7 +210,7 @@ for d = 1:numel(subdomain)
         end
         main.doms{d}.scats{s}.mod = fn_tidy_L_model(main.doms{d}.scats{s}.mod);
         % [main.doms{i}.scats{j}.mod.nds, main.doms{i}.scats{j}.mod.els, old_nds, new_nds] = fn_remove_unused_nodes(main.doms{i}.scats{j}.mod.nds, main.doms{i}.scats{j}.mod.els);
-        % main.doms{i}.scats{j}.mod.bdry_lys2 = main.doms{i}.mod.bdry_lys2(old_nds);
+        % main.doms{i}.scats{j}.mod.bdry_lyrs = main.doms{i}.mod.bdry_lyrs(old_nds);
         % main.doms{i}.scats{j}.mod.main_nd_i = main.doms{i}.scats{j}.mod.main_nd_i(old_nds);
         % main.doms{i}.scats{j}.mod.main_el_i = main.doms{i}.scats{j}.mod.main_el_i(old_nds);
     end
@@ -219,11 +222,11 @@ for d = 1:numel(subdomain)
         main.doms{d}.scats{s}.mod.el_mat_i = main.doms{d}.mod.el_mat_i;
         main.doms{d}.scats{s}.mod.el_abs_i = main.doms{d}.mod.el_abs_i;
         main.doms{d}.scats{s}.mod.el_typ_i = main.doms{d}.mod.el_typ_i;
-        main.doms{d}.scats{s}.mod.bdry_lys2 = main.doms{d}.mod.bdry_lys2;
+        main.doms{d}.scats{s}.mod.bdry_lyrs = main.doms{d}.mod.bdry_lyrs;
         main.doms{d}.scats{s}.mod.main_nd_i = main.doms{d}.mod.main_nd_i;
         main.doms{d}.scats{s}.mod.main_el_i = main.doms{d}.mod.main_el_i;
         % [main.doms{i}.scats{j}.mod.nds, main.doms{i}.scats{j}.mod.els, old_nds, new_nds] = fn_remove_unused_nodes(main.doms{i}.scats{j}.mod.nds, main.doms{i}.scats{j}.mod.els);
-        % main.doms{i}.scats{j}.mod.bdry_lys2 = main.doms{i}.mod.bdry_lys2(old_nds);
+        % main.doms{i}.scats{j}.mod.bdry_lyrs = main.doms{i}.mod.bdry_lyrs(old_nds);
         % main.doms{i}.scats{j}.mod.main_nd_i = main.doms{i}.scats{j}.mod.main_nd_i(old_nds);
         % main.doms{i}.scats{j}.mod.main_el_i = main.doms{i}.scats{j}.mod.main_el_i(old_nds);
         main.doms{d}.scats{s}.mod = fn_tidy_L_model(main.doms{d}.scats{s}.mod);

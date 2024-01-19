@@ -8,7 +8,7 @@ dom.mod.els = mod.els;
 dom.mod.el_mat_i = mod.el_mat_i;
 dom.mod.el_abs_i = mod.el_abs_i;
 dom.mod.el_typ_i = mod.el_typ_i;
-dom.mod.bdry_lys2 = zeros(size(mod.nds, 1), 1);
+dom.mod.bdry_lyrs = zeros(size(mod.nds, 1), 1);
 dom.mod.el_abs_i = zeros(size(mod.els, 1), 1);
 
 %add 4 layers of elements to get the bdry set
@@ -23,7 +23,7 @@ for i = 1:4
         %work out from there to get next 3
         [bdry_nds, layer_els, edge_break_detected] = fn_get_next_layer(dom.mod.nds, dom.mod.els, bdry_nds, free_ed_nds);
     end
-        dom.mod.bdry_lys2(bdry_nds) = i;
+        dom.mod.bdry_lyrs(bdry_nds) = i;
         if edge_break_detected
             error('Boundary layers break edge of model');
         end
@@ -43,11 +43,12 @@ els_in_use(dom.mod.el_abs_i > 1) = 0;
 
 [dom.mod.main_el_i, ~, dom.mod.els, dom.mod.el_mat_i, dom.mod.el_abs_i, dom.mod.el_typ_i] = fn_remove_unused_elements(els_in_use, dom.mod.els, dom.mod.el_mat_i, dom.mod.el_abs_i, dom.mod.el_typ_i);
 [dom.mod.nds, dom.mod.els, dom.mod.main_nd_i, ~] = fn_remove_unused_nodes(dom.mod.nds, dom.mod.els);
-dom.mod.bdry_lys2 = dom.mod.bdry_lys2(dom.mod.main_nd_i);
+dom.mod.bdry_lyrs = dom.mod.bdry_lyrs(dom.mod.main_nd_i);
 
 free_ed = fn_find_free_edges(dom.mod.els);
 
 dom.mod.outer_bndry_pts = [dom.mod.nds(free_ed, 1), dom.mod.nds(free_ed, 2)];
+dom.mod.inner_bndry_pts = inner_bdry;
 end
 
 %--------------------------------------------------------------------------

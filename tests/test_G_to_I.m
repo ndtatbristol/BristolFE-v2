@@ -1,4 +1,4 @@
-%Acoustic element test
+%Test of Global to Local model
 
 clear;
 close all;
@@ -110,32 +110,33 @@ display_options.matl_cols = [
 display_options.draw_elements = 0;
 display_options.interface_el_col = 'k';
 
-if show_geom_only
-    %Show geometry
-    figure;
-    h_patch = fn_show_GL_geometry(main, options);
-    % fn_AFPAC_display(main, display_options, 0);
-return
-    %Show subdomains
-    for i = 1:numel(main.doms)
-        for j = 1:4
-            k = main.doms{i}.mod.main_nd_i(main.doms{i}.mod.bdry_lys2 == j);
-            h = plot(main.mod.nds(k,1),main.mod.nds(k,2), 'g.');
-            set(h, 'Color', [0,1,0] * j / 4);
-            if j == 2 || j == 3
-                h = plot(main.mod.nds(k,1),main.mod.nds(k,2), 'ro');
-                set(h, 'Color', [1,0,0] * j / 4);
-            end
-        end
-    end
-    return
-end
+% if show_geom_only
+%     %Show geometry
+%     figure;
+%     h_patch = fn_show_GL_geometry(main, options);
+%     return
+% end
 
 %--------------------------------------------------------------------------
+time_pts = 150;
+main = fn_run_GL_whole_model(main, time_pts, options);
+
+options.doms_to_run = 1;
+options.scats_to_run_in = 1;
 
 
-main = fn_run_main_model(main, time_pts, options);
+%quick test
+figure;
+h_patch = fn_show_geometry(main.mod, main.matls, options)
+fn_run_animation_v2(h_patch, main.res{1}.fld, options);
 
+main = fn_run_GL_sub_model(main, options);
+figure;
+h_patch = fn_show_geometry(main.doms{1}.scats{1}.mod, main.matls, options)
+while 1
+fn_run_animation_v2(h_patch, main.doms{1}.scats{1}.res{1}.fld, options);
+end
+return
 if fname
     save(fname, 'main', "-v7.3");
 end

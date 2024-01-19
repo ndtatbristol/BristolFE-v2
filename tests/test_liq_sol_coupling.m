@@ -119,18 +119,16 @@ steps.mon.nds = [trans_nds_tx; trans_nds_rx];
 steps.mon.dfs = ones(size(steps.mon.nds)) * 4;
 steps.mon.field_output_every_n_frames = field_output_every_n_frames;
 
-% hist_gi = [tx_gi; rx_gi];
-pe_nds = [ones(size(trans_nds_tx)); zeros(size(trans_nds_rx))];
-pc_nds = [zeros(size(trans_nds_tx)); ones(size(trans_nds_rx))];
-
 %Do it!
 options = [];
 res = fn_BristolFE_v2(mod, matls, steps, options);
 
 %History output
 figure;
-pe_sig = sum(res{1}.dsp(find(pe_nds),:))';
-pc_sig = sum(res{1}.dsp(find(pc_nds),:))';
+j = ismember(res{1}.dsp_nds, trans_nds_tx);
+pe_sig = sum(res{1}.dsps(j,:))';
+j = ismember(res{1}.dsp_nds, trans_nds_rx);
+pc_sig = sum(res{1}.dsps(j,:))';
 plot(steps.load.time, [pe_sig, pc_sig])
 
 %Animate field. Note that the intent is for there NOT to be a separate

@@ -33,21 +33,27 @@ for s = 1:numel(steps)
         %Explicit dynamic analysis - (1) sort out inputs
         t = steps{s}.load.time;
         if isfield(steps{s}.load, 'frcs')
-            frc_gi = fn_nds_and_dfs_to_gi(steps{s}.load.frc_nds, steps{s}.load.frc_dfs, mats.gl_lookup);
+            [frc_gi, ~, ~, valid] = fn_nds_and_dfs_to_gi(steps{s}.load.frc_nds, steps{s}.load.frc_dfs, mats.gl_lookup);
             frcs = steps{s}.load.frcs;
+            if size(frcs, 1) > 1
+                frcs = frcs(valid, :);
+            end
         else
             frc_gi = [];
             frcs = [];
         end
         if isfield(steps{s}.load, 'dsps')
-            dsp_gi = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
+            [dsp_gi, res{s}.frc_nds, res{s}.frc_dfs, valid] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
             dsps = steps{s}.load.dsps;
+            if size(dsps,1) > 1
+                dsps = dsps(valid, :);
+            end
         else
             dsp_gi = [];
             dsps = [];
         end
         if isfield(steps{s}.mon, 'nds')
-            hist_gi = fn_nds_and_dfs_to_gi(steps{s}.mon.nds, steps{s}.mon.dfs, mats.gl_lookup);
+            [hist_gi, res{s}.dsp_nds, res{s}.dsp_dfs] = fn_nds_and_dfs_to_gi(steps{s}.mon.nds, steps{s}.mon.dfs, mats.gl_lookup);
         else
             hist_gi = [];
         end
@@ -58,7 +64,7 @@ for s = 1:numel(steps)
         end
 
         %Explicit dynamic analysis - (2) run it!
-        [res{s}.dsp, fld, res{s}.frc, res{s}.fld_time] = fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, frc_gi, frcs, dsp_gi, dsps, hist_gi, f_every_n, options.use_gpu_if_present);
+        [res{s}.dsps, fld, res{s}.frcs, res{s}.fld_time] = fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, frc_gi, frcs, dsp_gi, dsps, hist_gi, f_every_n, options.use_gpu_if_present);
         
         %Convert field output to element values
         if ~isempty(fld)
@@ -72,12 +78,15 @@ end
 
 end
 
-function gi = fn_nds_and_dfs_to_gi(nds, dfs, gl_lookup)
+function [gi, nds, dfs, valid] = fn_nds_and_dfs_to_gi(nds, dfs, gl_lookup)
 gi = zeros(numel(nds), 1);
 for i = 1:numel(nds)
     gi(i) = gl_lookup(nds(i), dfs(i));
 end
-gi = gi(gi > 0);
+valid = gi > 0;
+gi = gi(valid);
+nds = nds(valid);
+dfs = dfs(valid);
 end
 
 
