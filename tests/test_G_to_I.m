@@ -18,7 +18,7 @@ do_validation = 0;
 do_direct_injection = 0;
 els_per_wavelength = 4; %4 for testing, 6+ for real thing
 
-options.field_output_every_n_frames = 40;
+options.field_output_every_n_frames = 20;
 options.movie_mode = 1;
 scatterer_of_interest = 3;
 
@@ -96,10 +96,14 @@ subdomain(s).inner_rad = 2e-3;
 
 %--------------------------------------------------------------------------
 %Build main model
-main = fn_AFPAC_model( ...
+% main = fn_AFPAC_model( ...
+%     matls, centre_freq, els_per_wavelength, model_length, model_height, ...
+%     h_wall_thick, v_wall_thick, cladding_thick, abs_layer_thick, ...
+%     int_radius, r_water_thick, trans_cent, trans_size, trans_angd, subdomain);
+main = fn_AFPAC_model_array( ...
     matls, centre_freq, els_per_wavelength, model_length, model_height, ...
     h_wall_thick, v_wall_thick, cladding_thick, abs_layer_thick, ...
-    int_radius, r_water_thick, trans_cent, trans_size, trans_angd, subdomain);
+    int_radius, r_water_thick, trans_cent, trans_size, trans_angd, subdomain, 2);
 
 display_options = [];
 display_options.matl_cols = [
@@ -118,23 +122,27 @@ display_options.interface_el_col = 'k';
 % end
 
 %--------------------------------------------------------------------------
-time_pts = 150;
+
+%MAIN model run
+time_pts = 2500;
 main = fn_run_GL_whole_model(main, time_pts, options);
+
+
+% figure;
+% h_patch = fn_show_geometry(main.mod, main.matls, options)
+% fn_run_animation_v2(h_patch, main.res.trans{1}.fld, options);
+
+% return
 
 options.doms_to_run = 1;
 options.scats_to_run_in = 1;
-
-
-%quick test
-figure;
-h_patch = fn_show_geometry(main.mod, main.matls, options)
-fn_run_animation_v2(h_patch, main.res{1}.fld, options);
-
+options.tx_trans = 2;
 main = fn_run_GL_sub_model(main, options);
+
 figure;
 h_patch = fn_show_geometry(main.doms{1}.scats{1}.mod, main.matls, options)
 while 1
-fn_run_animation_v2(h_patch, main.doms{1}.scats{1}.res{1}.fld, options);
+fn_run_animation_v2(h_patch, main.doms{1}.scats{1}.trans{2}.fld, options);
 end
 return
 if fname
