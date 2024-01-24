@@ -54,7 +54,7 @@ if size(M,1) ~= size(M, 2)
     error('M must be square matrix');
 end
 
-fprintf('Explicit time marching v5 (GPU = %i) ', use_gpu);
+fprintf('Explicit time marching v5 (GPU = %i, time steps = %i) ', use_gpu,  numel(time));
 time_step = time(2) - time(1);
 
 %initialise history and field output variables
@@ -188,6 +188,6 @@ if use_gpu
 end
 
 t2 = etime(clock, t1);
-fprintf(' completed in %.2f secs (%i time steps)\n', t2, length(time));
+fprintf(' completed in %.2f secs\n', t2);
 
 end

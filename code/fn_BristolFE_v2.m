@@ -1,4 +1,4 @@
-function [res, mats] = fn_BristolFE_v2(mod, matls, steps, options)
+function [res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %SUMMARY
 %   Entry function for Bristol FE v2.
 %INPUTS
@@ -13,14 +13,15 @@ function [res, mats] = fn_BristolFE_v2(mod, matls, steps, options)
 %--------------------------------------------------------------------------
 
 default_options.use_gpu_if_present = 1;
+default_options.field_output_every_n_frames = inf;
 
-options = fn_set_default_fields(options, default_options);
+fe_options = fn_set_default_fields(fe_options, default_options);
 
 %Check inputs - are all mesh and material details consistent?
 
 
 %Build the global matrices
-[mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v4(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, options);
+[mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v4(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);
 
 %Convert steps into cell array if not already
 if ~iscell(steps)
@@ -57,14 +58,9 @@ for s = 1:numel(steps)
         else
             hist_gi = [];
         end
-        if isfield(steps{s}.mon, 'field_output_every_n_frames')
-            f_every_n = steps{s}.mon.field_output_every_n_frames;
-        else
-            f_every_n = inf;
-        end
 
         %Explicit dynamic analysis - (2) run it!
-        [res{s}.dsps, fld, res{s}.frcs, res{s}.fld_time] = fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, frc_gi, frcs, dsp_gi, dsps, hist_gi, f_every_n, options.use_gpu_if_present);
+        [res{s}.dsps, fld, res{s}.frcs, res{s}.fld_time] = fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_present);
         
         %Convert field output to element values
         if ~isempty(fld)

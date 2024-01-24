@@ -1,22 +1,31 @@
-function [nodes, elements] = fn_rectangular_structured_mesh(corner_nodes, element_size)
+function mod = fn_rectangular_structured_mesh(bdry_pts, el_size)
 %SUMMARY
-%   Utility function for generating a rectangular structured mesh of triangular
-%   elements
+%   Utility function for generating a structured mesh of right isocoles triangular
+%   elements, that fills the region specified by bdry_nds. However,
+%   fn_isometric_structured_mesh is probably superior!
 %INPUTS
-%   corner_nodes - 2 x 2 matrix of nodal coordinates - each row is
-%   coordinate of diagonally-opposite corners
+%   bdry_pts - n_bdry x 2 matrix of coordinates of the n_bdry points that 
+%       will define boundary of mesh.
+%OUTPUT
+%   mod - structured variable containing fields:
+%       .nds - n_nds x 2 matrix of coordinates of each of n_nds nodes
+%       .els - n_els x 3 matrix of node indices for each of n_els elements
 
-block_size_x = abs(corner_nodes(2, 1) - corner_nodes(1, 1));
-block_size_y = abs(corner_nodes(2, 2) - corner_nodes(1, 2));
+%--------------------------------------------------------------------------
+%Figure out a bounding rectangle for whole shape
+crnr_pts = [min(bdry_pts); max(bdry_pts)];
+
+block_size_x = abs(crnr_pts(2, 1) - crnr_pts(1, 1));
+block_size_y = abs(crnr_pts(2, 2) - crnr_pts(1, 2));
 
 
 %Work out how many nodes are needed in x and y
-nodes_in_x_direction = ceil(block_size_x / element_size) + 1;
-nodes_in_y_direction = ceil(block_size_y / element_size) + 1;
+nodes_in_x_direction = ceil(block_size_x / el_size) + 1;
+nodes_in_y_direction = ceil(block_size_y / el_size) + 1;
 
 %Work out nodal coordinates
-x = linspace(min(corner_nodes(:, 1)), max(corner_nodes(:, 1)), nodes_in_x_direction);
-y = linspace(min(corner_nodes(:, 2)), max(corner_nodes(:, 2)), nodes_in_y_direction);
+x = linspace(min(crnr_pts(:, 1)), max(crnr_pts(:, 1)), nodes_in_x_direction);
+y = linspace(min(crnr_pts(:, 2)), max(crnr_pts(:, 2)), nodes_in_y_direction);
 [node_x_positions, node_y_positions] = meshgrid(x, y);
 
 %Work out node numbers associated with each element (a bit fiddly as you can see) 
@@ -29,8 +38,15 @@ element_node2b = node_numbers(1:end-1, 2:end);
 element_node3b = node_numbers(2:end, 2:end);
 
 %Final m x 2 matrix of x and y coordinates for each node
-nodes = [node_x_positions(:), node_y_positions(:)];
+mod.nds = [node_x_positions(:), node_y_positions(:)];
 %Final n x 3 matrix of 3 node numbers for each element
-elements = [[element_node1a(:), element_node2a(:), element_node3a(:)];[element_node1b(:), element_node2b(:), element_node3b(:)]];
+mod.els = [[element_node1a(:), element_node2a(:), element_node3a(:)];[element_node1b(:), element_node2b(:), element_node3b(:)]];
+
+%Now remove elements outside original boundary
+[in, out] = fn_elements_in_region(mod.nds, mod.els, bdry_pts);
+mod.els(out, :) = [];
+
+[mod.nds, mod.els] = fn_remove_unused_nodes(mod.nds, mod.els);
+
 
 end
