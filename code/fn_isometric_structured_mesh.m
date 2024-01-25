@@ -63,9 +63,16 @@ mod.els = [
     ];
 
 %Now remove elements outside original boundary
-[in, out] = fn_elements_in_region(mod.nds, mod.els, bdry_pts);
+[in, out] = fn_elements_in_region(mod, bdry_pts);
 mod.els(out, :) = [];
 
+%Tidy up by removing unused nodes
 [mod.nds, mod.els] = fn_remove_unused_nodes(mod.nds, mod.els);
+
+%Associate each element with a material index = 1 and absorption index = 0 
+%to start with
+n_els = size(mod.els, 1);
+mod.el_mat_i = ones(n_els, 1);
+mod.el_abs_i = zeros(n_els, 1);
 
 end

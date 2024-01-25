@@ -9,6 +9,7 @@ matls(1).rho = 1000;
 matls(1).D = 1500 ^ 2 * matls(1).rho;
 matls(1).col = hsv2rgb([0.6,0.5,0.8]);
 matls(1).name = 'Water';
+matls(1).el_typ = 'AC2D3';
 
 %Define shape of model
 model_size = 10e-3;
@@ -16,7 +17,7 @@ bdry_pts = [0, 0; 2, 0; 2, 1; 1, 1] * model_size;
 
 %Define a line along which sources will be placed to excite waves
 src_end_pts = [0.3, 0; 0.7, 0] * model_size;
-src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z, 4 = volumetric expansion (for fluids)
+src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 
 %Details of input signal
 centre_freq = 5e6;
@@ -33,12 +34,6 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 mod = fn_isometric_structured_mesh(bdry_pts, el_size);
-
-%Associate each element with a material, element type and absorption index
-n_els = size(mod.els, 1);
-mod.el_mat_i = ones(n_els, 1);
-mod.el_abs_i = zeros(n_els, 1);
-mod.el_typ_i = repmat({'AC2D3'}, [n_els, 1]);
 
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run
@@ -76,7 +71,8 @@ xlabel('Time (s)')
 
 %Animate result
 figure;
+display_options.draw_elements = 0;
+h_patch = fn_show_geometry(mod, matls, display_options);
 anim_options.repeat_n_times = 1;
-h_patch = fn_show_geometry(mod, matls, anim_options);
-fn_run_animation_v2(h_patch, res{1}.fld, anim_options);
+fn_run_animation(h_patch, res{1}.fld, anim_options);
 

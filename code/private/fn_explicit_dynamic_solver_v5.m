@@ -184,10 +184,11 @@ if use_gpu
 	end
 	if ~isinf(field_output_every_n_frames)
 		field_output = gather(field_output);
-	end
+    end
+    reset(gpuDevice);
 end
 
 t2 = etime(clock, t1);
-fprintf(' completed in %.2f secs\n', t2);
+fprintf('completed in %.2f secs\n', t2);
 
 end

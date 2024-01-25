@@ -19,6 +19,12 @@ fe_options = fn_set_default_fields(fe_options, default_options);
 
 %Check inputs - are all mesh and material details consistent?
 
+%If mod.el_typ_i not specified at this point, generate it based on matls
+if ~isfield(mod, 'el_typ_i')
+    mod.el_typ_i = {matls(mod.el_mat_i).el_typ};
+    mod.el_typ_i = mod.el_typ_i(:);
+end
+
 
 %Build the global matrices
 [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v4(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);

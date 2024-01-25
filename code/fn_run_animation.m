@@ -1,4 +1,4 @@
-function fn_run_animation_v2(h_patch, fld, anim_options)
+function fn_run_animation(h_patch, fld, anim_options)
 default_options.pause_value = 0.001;
 default_options.wave_color = [1,1,1];
 default_options.mp4_out = [];
