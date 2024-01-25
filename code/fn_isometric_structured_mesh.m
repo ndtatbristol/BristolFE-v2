@@ -9,7 +9,9 @@ function mod = fn_isometric_structured_mesh(bdry_pts, el_size)
 %   mod - structured variable containing fields:
 %       .nds - n_nds x 2 matrix of coordinates of each of n_nds nodes
 %       .els - n_els x 3 matrix of node indices for each of n_els elements
-
+%       .el_mat_i - n_els x 1 matrix of ones as a placeholder for element
+%       material indices assigned elsewhere if more than one type of
+%       material is used in model
 %--------------------------------------------------------------------------
 %Figure out a bounding rectangle for whole shape
 crnr_pts = [min(bdry_pts); max(bdry_pts)];
@@ -69,10 +71,7 @@ mod.els(out, :) = [];
 %Tidy up by removing unused nodes
 [mod.nds, mod.els] = fn_remove_unused_nodes(mod.nds, mod.els);
 
-%Associate each element with a material index = 1 and absorption index = 0 
-%to start with
+%Associate each element with a material index = 1
 n_els = size(mod.els, 1);
 mod.el_mat_i = ones(n_els, 1);
-mod.el_abs_i = zeros(n_els, 1);
-
 end

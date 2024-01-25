@@ -14,36 +14,26 @@ Some example scripts are provided in the BristolFE-v2/examples. Most likely you 
 OVERVIEW
 ========
 
-The core FE functions are 
+The entry point function is res = fn_BristolFE_v2(mod, matls, steps, fe_options). 
 
-[K, M, Q, global_matrix_nodes, global_matrix_dofs] = fn_build_global_matrices(nodes, elements, element_materials, materials)
-This builds the global stiffness (K) and mass (M) matrices for the FE model. The matrix Q is used to convert the nodel displacments form a model into stress components [sigma_xx, sigma_yy, sigma_xy] within each element. The outputs global_matrix_nodes and global_matrix_dofs list the nodes and DOF associated with each row/col in the global matrices.
+When this function is called, a complete mesh must be specified (in mod), the materials used must be defined (in matls), and one or more loading steps and the required outputs defined (in the cell array steps).
 
-[u, f] = fn_static_solver(K, applied_forces, applied_displacements)
-This performs a static analysis of a model subject to applied forces and/or displacements. The outputs are the displacement (u) and external force (f) at each node.
+The requested results for the corresponding loading step are returned in the cell array res. Typical outputs are one or both of: 
+    1. History outputs -complete time histories of the displacement (or pressure in fluids) at one or mode nodes, typically plotted as time-domain signals.
+    2. Field output - snapshots of the complete wavefield (its local kinetic energy) at intervals in time, typically displayed as a movie and used as a visualisation tool.
 
-[history_output, field_output] = fn_explicit_dynamic_solver(K, M, global_matrix_nodes, global_matrix_dofs, time, forcing_nodes, forcing_dofs, forcing_functions, history_nodes, history_dofs, field_output_every_n_frames, use_diagonal_lumped_mass_matrix)
-This performs an explicit time-marching simulation when the specified time-varying forcing_functions are applied to the specified node DOFs. The output can be time histories of displacements at specified nodes or the complete displacment field at specified time steps.
+Most of the code in the example scripts is concerned with preparing mod, matls, and steps before fn_BristolFE_v2 is called and then displaying the outputs.
 
-The other functions are mostly utilities to perform common tasks to support the core FE functions:
+EXAMPLES
+========
 
-fn_display_result - use for plotting mesh and results
+In BristolFE-v2/examples you will find the following scripts which provide simple examples how to set up different features in models:
+    1. fluid_example.m - simulate pressure waves in a fluid domain
+    2. solid_example.m - simulate longitudinal and shear waves in a solid domain
+    3. coupled_solid_fluid_example.m - simulate waves in a fluid domain coupled to a solid one, showing mode conversions at the interface
+    4. absorbing_layer_example.m - same as 3 but this time with an absorbing layer on 3 sides of the domain to prevent reflections
 
-fn_apply_stress_along_line - works out nodal forces equivalent to specified stress
-fn_find_node_at_point - finds nearest node to a point
-fn_find_nodes_on_line - find nearest nodes to a line
-fn_global_output_to_nodal_displacements - converts raw displacement output vector from simulation back into two-column matrix of the displacement for each node in each DOF
 
-fn_isotropic_plane_strain_stiffness_matrix - plane strain stiffness matrix for isotropic material based on Young's modulus and Poisson's ratio
-fn_isotropic_plane_stress_stiffness_matrix - plane stress stiffness matrix for isotropic material based on Young's modulus and Poisson's ratio
-fn_lame_from_velocities_and_density - converts ultrasonic longitudinal and shear velocities and density into Lame elastic constants 
-fn_youngs_from_lame - converts Lame elastic constants into Young's modulus and Poisson's ratio
-
-fn_nodes_and_dofs_to_indices - converts lists of nodes and DOFs into indices into global matrices
-fn_rectangular_structured_mesh - generates rectangular structured mesh made of identical right-angle-triangle-shaped elements
-fn_reduce_global_matrics - removes rows/cols from global matrices for specified nodes/DOFs. Typically used for imposing displacement BCs
-
-fn_hilbert - performs Hilbert transform of time-domain signals
 
 
 

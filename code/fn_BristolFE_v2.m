@@ -2,7 +2,8 @@ function [res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %SUMMARY
 %   Entry function for Bristol FE v2.
 %INPUTS
-%   mod - description of mesh including nodes and elements
+%   mod - description of mesh including nodes, elements, material
+%   indices, and possibly absorbing indices if absorbing layers are used.
 %   matls - description of materials used in mod
 %   steps - description of one or more (use cell array) steps in which 
 %       loads are applied, including details of the load and what is
@@ -23,6 +24,10 @@ fe_options = fn_set_default_fields(fe_options, default_options);
 if ~isfield(mod, 'el_typ_i')
     mod.el_typ_i = {matls(mod.el_mat_i).el_typ};
     mod.el_typ_i = mod.el_typ_i(:);
+end
+
+if ~isfield(mod, 'el_abs_i')
+    mod.el_abs_i = zeros(size(mod.el_mat_i));
 end
 
 

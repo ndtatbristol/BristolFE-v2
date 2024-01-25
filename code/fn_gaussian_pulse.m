@@ -1,4 +1,8 @@
 function s = fn_gaussian_pulse(t, centre_freq, no_cycles)
+%SUMMARY
+%   Returns a Gaussian pulse with specifed centre frequency and number of
+%   cycles (based on -40dB points) given a specified time axis.
+
 sz= size(t);
 t = t(:);
 beta = 0.01;

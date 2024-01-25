@@ -1,4 +1,4 @@
-function [K, C, M, gl_lookup] = fn_build_global_matrices_v4(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, options)
+function [K, C, M, gl_lookup] = fn_build_global_matrices_v4(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, fe_options)
 %SUMMARY
 %   Creates global matrices from mesh definitions
 %INPUTS
@@ -29,7 +29,7 @@ default_options.damping_power_law = 3;
 default_options.max_damping = 3.1415e+07;
 default_options.max_stiffness_reduction = 0.01;
 
-options = fn_set_default_fields(options, default_options);
+fe_options = fn_set_default_fields(fe_options, default_options);
 
 %switch depending on DOF
 % if numel(varargin) < 1
@@ -92,7 +92,7 @@ un_df = [];
 max_el_df = 0;
 for t = 1:numel(un_typs)
     fn_el_mats = str2func(['fn_el_', un_typs{t}]);
-    [~, ~, ~, ~, loc_df] = fn_el_mats([], [], [], options.dof_to_use);
+    [~, ~, ~, ~, loc_df] = fn_el_mats([], [], [], fe_options.dof_to_use);
     un_df = [un_df, loc_df];
     max_el_df = max(max_el_df, numel(loc_df));
 end
@@ -150,7 +150,7 @@ for t = 1:numel(un_typs)
         
 
         %Get the element stiffness and mass matrices
-        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(el_i2, :), D, rho, options.dof_to_use);
+        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(el_i2, :), D, rho, fe_options.dof_to_use);
 
         % %convert loc_df into indices starting at 1 (necessary to avoid
         % %wasting tons of space when dealing with acoustic elements with the
@@ -159,8 +159,8 @@ for t = 1:numel(un_typs)
 
 
         %Calculate element damping matrices based on absorbing index of each element
-        el_C = el_C + el_M .* el_abs_i(el_i2) .^ options.damping_power_law *  options.max_damping;
-        el_K = el_K .* exp(log(options.max_stiffness_reduction) .* el_abs_i(el_i2) .^ (options.damping_power_law + 1));
+        el_C = el_C + el_M .* el_abs_i(el_i2) .^ fe_options.damping_power_law *  fe_options.max_damping;
+        el_K = el_K .* exp(log(fe_options.max_stiffness_reduction) .* el_abs_i(el_i2) .^ (fe_options.damping_power_law + 1));
 
         %Work out where the element matrices will go in the global matrices
         [loc_nd_i, loc_nd_j] = meshgrid(loc_nd, loc_nd);

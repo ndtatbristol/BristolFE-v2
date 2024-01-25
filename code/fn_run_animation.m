@@ -1,4 +1,11 @@
 function fn_run_animation(h_patch, fld, anim_options)
+%SUMMARY
+%   Animates field output on a previously displayed model geometry. The
+%   wave intensity is presented as the local kinetic energy on a dB scale
+%   (default range is 40dB, normalised to peak amplitude over all locations
+%   and all times). The range and normalisation value can be over-ridden by
+%   setting the appropriate options (see below).
+
 default_options.pause_value = 0.001;
 default_options.wave_color = [1,1,1];
 default_options.mp4_out = [];
