@@ -1,16 +1,16 @@
-%Test of Global to Local model
+%Test of subdomain model
 
 clear;
 close all;
 % restoredefaultpath;
-restoredefaultpath;
 addpath(genpath(fullfile('..', 'code')));
+addpath(genpath(fullfile('..', 'subdoms')));
 
 animate_fname = []; %'AFPAC_v2c';
 % fname = 'AFPAC_v2';
 fname = [];
 
-show_geom_only = 1;
+show_geom_only = 0;
 
 do_no_defect_cases = 1;
 do_defect_cases = 0;
@@ -18,8 +18,8 @@ do_validation = 0;
 do_direct_injection = 0;
 els_per_wavelength = 4; %4 for testing, 6+ for real thing
 
-options.field_output_every_n_frames = 20;
-options.movie_mode = 1;
+fe_options.field_output_every_n_frames = 20;
+fe_options.movie_mode = 1;
 scatterer_of_interest = 3;
 
 % options.field_output_every_n_frames = inf;
@@ -56,51 +56,50 @@ time_pts = round(els_per_wavelength / 6 * 20000); %put up to 14k for 6 el/lambda
 
 %Materials
 steel_matl_i = 1;
-matls(steel_matl_i).rho = 8900;
-matls(steel_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
-matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]);
-matls(steel_matl_i).name = 'Steel';
-matls(steel_matl_i).el_typ = 'CPE3';
+main.matls(steel_matl_i).rho = 8900;
+main.matls(steel_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
+main.matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]);
+main.matls(steel_matl_i).name = 'Steel';
+main.matls(steel_matl_i).el_typ = 'CPE3';
 
 gold_matl_i = 2;
-matls(gold_matl_i).rho = 7000;
-matls(gold_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
-matls(gold_matl_i).col = [0.8672, 0.9375, 0.1875];
-matls(gold_matl_i).name = 'Gold';
-matls(gold_matl_i).el_typ = 'CPE3';
+main.matls(gold_matl_i).rho = 7000;
+main.matls(gold_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
+main.matls(gold_matl_i).col = [0.8672, 0.9375, 0.1875];
+main.matls(gold_matl_i).name = 'Gold';
+main.matls(gold_matl_i).el_typ = 'CPE3';
 
 water_matl_i = 3;
-matls(water_matl_i).rho = water_density;
-matls(water_matl_i).D = water_velocity ^ 2 * water_density;
-matls(water_matl_i).col = hsv2rgb([0.6,0.5,0.8]);
-matls(water_matl_i).name = 'Water';
-matls(water_matl_i).el_typ = 'AC2D3';
+main.matls(water_matl_i).rho = water_density;
+main.matls(water_matl_i).D = water_velocity ^ 2 * water_density;
+main.matls(water_matl_i).col = hsv2rgb([0.6,0.5,0.8]);
+main.matls(water_matl_i).name = 'Water';
+main.matls(water_matl_i).el_typ = 'AC2D3';
 
 air_matl_i = 4;
-matls(air_matl_i).rho = air_density;
-matls(air_matl_i).D = air_velocity ^ 2 * water_density;
-matls(air_matl_i).col = [1.0, 1.0, 1.0];
-matls(air_matl_i).name = 'Air';
-matls(air_matl_i).el_typ = 'AC2D3';
+main.matls(air_matl_i).rho = air_density;
+main.matls(air_matl_i).D = air_velocity ^ 2 * water_density;
+main.matls(air_matl_i).col = [1.0, 1.0, 1.0];
+main.matls(air_matl_i).name = 'Air';
+main.matls(air_matl_i).el_typ = 'AC2D3';
 
 %Define sub-domains
-s = 0;
-h = trans_cent(2) - h_wall_thick;
 
 %1 At ray entry point
-s = s + 1;
-subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd), h_wall_thick];
-subdomain(s).inner_rad = 2e-3;
+d = 1;
+h = trans_cent(2) - h_wall_thick;
+subdomain(d).cent = [trans_cent(1) + h * sind(trans_angd), h_wall_thick];
+subdomain(d).inner_rad = 2e-3;
 
-% %2 On back wall
-s = s + 1;
-subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd) + h_wall_thick, 0];
-subdomain(s).inner_rad = 2e-3;
-
-%3 On radius
-s = s + 1;
-subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd) + 2 * h_wall_thick, h_wall_thick];
-subdomain(s).inner_rad = 2e-3;
+% % %2 On back wall
+% subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd) + h_wall_thick, 0];
+% subdomain(s).inner_rad = 2e-3;
+% s = s + 1;
+% 
+% %3 On radius
+% subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd) + 2 * h_wall_thick, h_wall_thick];
+% subdomain(s).inner_rad = 2e-3;
+% s = s + 1;
 
 %--------------------------------------------------------------------------
 
@@ -111,87 +110,97 @@ subdomain(s).inner_rad = 2e-3;
     int_radius, r_water_thick);
 
 %Work out element size
-el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
+el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
+
 
 %Create the nodes and elements of the mesh
-mod = fn_isometric_structured_mesh(model_bdry, el_size);
+main.mod = fn_isometric_structured_mesh(model_bdry, el_size);
+main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
+main.mod.design_centre_freq = centre_freq;
 
 %First set material of all elements to steel then set elements inside water 
 %boundary material to water
-mod.el_mat_i(:) = steel_matl_i;
-mod = fn_set_els_inside_bdry_to_mat(mod, water_bdry1, water_matl_i);
-mod = fn_set_els_inside_bdry_to_mat(mod, water_bdry2, water_matl_i);
-mod = fn_set_els_inside_bdry_to_mat(mod, cladding_bdry_pts, gold_matl_i);
+main.mod.el_mat_i(:) = steel_matl_i;
+main.mod = fn_set_els_inside_bdry_to_mat(main.mod, water_bdry1, water_matl_i);
+main.mod = fn_set_els_inside_bdry_to_mat(main.mod, water_bdry2, water_matl_i);
+main.mod = fn_set_els_inside_bdry_to_mat(main.mod, cladding_bdry_pts, gold_matl_i);
 
 %Add interface elements - this is crucial otherwise there will be no
 %coupling between fluid and solid
-mod = fn_add_fluid_solid_interface_els(mod, matls);
+main.mod = fn_add_fluid_solid_interface_els(main.mod, main.matls);
 
 %Define the absorbing layer
-mod = fn_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
+main.mod = fn_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
 
+%Define transducer
+no_array_els = 2;
+array_el_size = trans_size / no_array_els;
+el_cents = linspace(-0.5, 0.5, no_array_els)' * (trans_size - array_el_size) * [cosd(trans_angd), sind(trans_angd)] + trans_cent;
+for e = 1:no_array_els
+    trans1  = el_cents(e, :) - array_el_size / 2 * [cosd(trans_angd), sind(trans_angd)];
+    trans2  = el_cents(e, :) + array_el_size / 2 * [cosd(trans_angd), sind(trans_angd)];
+    [main.trans{e}.nds, s] = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, el_size / 2);
+    main.trans{e}.dfs = ones(size(main.trans{e}.nds)) * 4;
+end
 
-%Build main model
-% main = fn_AFPAC_model( ...
-%     matls, centre_freq, els_per_wavelength, model_length, model_height, ...
-%     h_wall_thick, v_wall_thick, cladding_thick, abs_layer_thick, ...
-%     int_radius, r_water_thick, trans_cent, trans_size, trans_angd, subdomain);
-% main = fn_AFPAC_model_array( ...
-%     matls, centre_freq, els_per_wavelength, model_length, model_height, ...
-%     h_wall_thick, v_wall_thick, cladding_thick, abs_layer_thick, ...
-%     int_radius, r_water_thick, trans_cent, trans_size, trans_angd, subdomain, 2);
-
+%Add subdomains
+a = linspace(0,2*pi,361)';
+for d = 1:numel(subdomain)
+    inner_bdry = subdomain(d).cent + subdomain(d).inner_rad * [cos(a), sin(a)];
+    main.doms{d} = fn_create_subdomain(main.mod, inner_bdry, abs_bdry_thickness);
+    main.doms{d}.scats{1}.mod = main.doms{d}.mod;
+end
 
 if show_geom_only
     %Show geometry
     figure;
     display_options.draw_elements = 0;
-    % display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
-    % display_options.node_sets_to_plot(1).col = 'r.';
-    h_patch = fn_show_geometry(mod, matls, display_options);
-
-    % fn_plot_line(abs_bdry_pts, 'r', 1);
-    % fn_plot_line(water_bdry1, 'b', 1);
-    % fn_plot_line(water_bdry2, 'b', 1);
+    display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
+    display_options.node_sets_to_plot(1).col = 'r.';
+    fn_show_geometry_with_subdomains(main, display_options);
     return
 end
 
 %--------------------------------------------------------------------------
 
-%MAIN model run
+%Run main model
 time_pts = 2500;
-main = fn_run_GL_whole_model(main, time_pts, options);
+main = fn_run_main_model(main, time_pts, fe_options);
 
-
-% figure;
-% h_patch = fn_show_geometry(main.mod, main.matls, options)
-% fn_run_animation_v2(h_patch, main.res.trans{1}.fld, options);
+%Animate main runs
+figure;
+h_patch = fn_show_geometry(main.mod, main.matls, fe_options);
+for t = 1:numel(main.res.trans)
+    fn_run_animation(h_patch, main.res.trans{t}.fld, fe_options);
+end
 
 % return
-
-options.doms_to_run = 1;
-options.scats_to_run_in = 1;
-options.tx_trans = 2;
-main = fn_run_GL_sub_model(main, options);
+fe_options.doms_to_run = 1;
+fe_options.scats_to_run_in = 1;
+main = fn_run_subdomain_model(main, fe_options);
 
 figure;
-h_patch = fn_show_geometry(main.doms{1}.scats{1}.mod, main.matls, options)
-while 1
-fn_run_animation_v2(h_patch, main.doms{1}.scats{1}.trans{2}.fld, options);
+h_patch = fn_show_geometry(main.doms{1}.scats{1}.mod, main.matls, fe_options)
+for t = 1:numel(main.res.trans)
+    fn_run_animation(h_patch, main.doms{1}.scats{1}.trans{t}.fld, fe_options);
 end
+
 return
+
+
+
 if fname
     save(fname, 'main', "-v7.3");
 end
 
 if do_no_defect_cases || do_defect_cases
     if ~do_defect_cases
-        options.scats_to_run_in = 2;
+        fe_options.scats_to_run_in = 2;
     end
     if ~do_no_defect_cases
-        options.scats_to_run_in = 1;
+        fe_options.scats_to_run_in = 1;
     end
-    main = fn_run_scatterer_model(main, options);
+    main = fn_run_scatterer_model(main, fe_options);
 end
 
 
@@ -200,7 +209,7 @@ if fname
     save(fname, 'main', "-v7.3");
 end
 
-if options.movie_mode
+if fe_options.movie_mode
     %This figure shows animation of main defect free model and the defect
     %subdomains below (with defects)
     figure;
@@ -229,16 +238,16 @@ end
 
 %Following just produce validation and DI animations for 3rd defect region
 if do_validation
-    options.doms_to_run = scatterer_of_interest;
-    main = fn_run_validation_models(main, options);
-    if options.movie_mode
-        d = options.doms_to_run;
-        s = 1; %s = 1 is always the defect case
+    fe_options.doms_to_run = scatterer_of_interest;
+    main = fn_run_validation_models(main, fe_options);
+    if fe_options.movie_mode
+        d = fe_options.doms_to_run;
+        d = 1; %s = 1 is always the defect case
         display_options.interface_el_col = 'k';
-        display_options.el_mat_i = main.doms{d}.scats{s}.val.mod.el_mat_i;
-        display_options.el_abs_i = main.doms{d}.scats{s}.val.mod.el_abs_i;
+        display_options.el_mat_i = main.doms{d}.scats{d}.val.mod.el_mat_i;
+        display_options.el_abs_i = main.doms{d}.scats{d}.val.mod.el_abs_i;
         figure;
-        animation_data = fn_prepare_animation(main.doms{d}.scats{s}.val.mod.nds, main.doms{d}.scats{s}.val.mod.els, main.doms{d}.scats{s}.val.mats.gl_lookup, main.doms{d}.scats{s}.val.res.tx_rx{1}.f_out, display_options);
+        animation_data = fn_prepare_animation(main.doms{d}.scats{d}.val.mod.nds, main.doms{d}.scats{d}.val.mod.els, main.doms{d}.scats{d}.val.mats.gl_lookup, main.doms{d}.scats{d}.val.res.tx_rx{1}.f_out, display_options);
         hold on;
         i = main.mod.tx_rx{1}.nds;
         plot(main.mod.nds(i,1), main.mod.nds(i,2), 'r.');
@@ -250,15 +259,15 @@ if do_validation
     end
 end
 if do_direct_injection
-    main = fn_run_direct_injection_models(main, options);
-    if options.movie_mode
+    main = fn_run_direct_injection_models(main, fe_options);
+    if fe_options.movie_mode
         d = scatterer_of_interest;
-        s = 1; %s = 1 is always the defect case
+        d = 1; %s = 1 is always the defect case
         display_options.interface_el_col = 'k';
         display_options.el_mat_i = main.mod.el_mat_i;
         display_options.el_abs_i = main.mod.el_abs_i;
         figure;
-        animation_data = fn_prepare_animation(main.mod.nds, main.mod.els, main.mats.gl_lookup, main.doms{d}.scats{s}.di.res.tx_rx{1}.f_out, display_options);
+        animation_data = fn_prepare_animation(main.mod.nds, main.mod.els, main.mats.gl_lookup, main.doms{d}.scats{d}.di.res.tx_rx{1}.f_out, display_options);
         hold on;
         i = main.mod.tx_rx{1}.nds;
         plot(main.mod.nds(i,1), main.mod.nds(i,2), 'r.');
@@ -270,18 +279,18 @@ if do_direct_injection
     end
 end
 
-if ~options.movie_mode
+if ~fe_options.movie_mode
     d = scatterer_of_interest;
     for d = 1:3
-    s = 1;
+    d = 1;
     ymax = 0.1;
     %plot the A-scans for comparison
     t = main.mod.time * 1e6;
     tmax = max(t);
     u_pristine = fn_convolve(main.res.tx_rx{1}.rx, main.mod.desired_input, 2);
-    u_total = fn_convolve(main.doms{d}.scats{s}.res.tx_rx{1}.rx, main.mod.desired_input, 2);
+    u_total = fn_convolve(main.doms{d}.scats{d}.res.tx_rx{1}.rx, main.mod.desired_input, 2);
     u_scat = u_total - u_pristine;
-    u_val = fn_convolve(main.doms{d}.scats{s}.val.res.tx_rx{1}.rx, main.mod.desired_input, 2);
+    u_val = fn_convolve(main.doms{d}.scats{d}.val.res.tx_rx{1}.rx, main.mod.desired_input, 2);
     mv = max(abs(u_pristine)) * ymax;
     
 
