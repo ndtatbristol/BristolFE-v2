@@ -45,35 +45,43 @@ v_wall_thick = 10e-3;
 r_water_thick = 5e-3;
 cladding_thick = 1e-3;
 int_radius = 3e-3;
-abs_layer_thick = 2e-3;
+abs_bdry_thickness = 2e-3;
 
 %transducer
 trans_size = 6e-3;
-trans_cent = [abs_layer_thick + trans_size / 2, 15e-3];
+trans_cent = [abs_bdry_thickness + trans_size / 2, 15e-3];
 trans_angd = 20.6; %angle from horisontal: 20.6 for S and 10.8 to L at 45
 
 time_pts = round(els_per_wavelength / 6 * 20000); %put up to 14k for 6 el/lambda
 
 %Materials
-matls(1).rho = 8900;
-matls(1).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
-matls(1).col = hsv2rgb([2/3,0,0.80]);
-matls(1).name = 'Steel';
+steel_matl_i = 1;
+matls(steel_matl_i).rho = 8900;
+matls(steel_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
+matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]);
+matls(steel_matl_i).name = 'Steel';
+matls(steel_matl_i).el_typ = 'CPE3';
 
-matls(2).rho = 7000;
-matls(2).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
-matls(2).col = [0.8672, 0.9375, 0.1875];
-matls(2).name = 'Gold';
+gold_matl_i = 2;
+matls(gold_matl_i).rho = 7000;
+matls(gold_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
+matls(gold_matl_i).col = [0.8672, 0.9375, 0.1875];
+matls(gold_matl_i).name = 'Gold';
+matls(gold_matl_i).el_typ = 'CPE3';
 
-matls(3).rho = water_density;
-matls(3).D = water_velocity ^ 2 * water_density;
-matls(3).col = hsv2rgb([0.6,0.5,0.8]);
-matls(3).name = 'Water';
+water_matl_i = 3;
+matls(water_matl_i).rho = water_density;
+matls(water_matl_i).D = water_velocity ^ 2 * water_density;
+matls(water_matl_i).col = hsv2rgb([0.6,0.5,0.8]);
+matls(water_matl_i).name = 'Water';
+matls(water_matl_i).el_typ = 'AC2D3';
 
-matls(4).rho = air_density;
-matls(4).D = air_velocity ^ 2 * water_density;
-matls(4).col = [1.0, 1.0, 1.0];
-matls(4).name = 'Air';
+air_matl_i = 4;
+matls(air_matl_i).rho = air_density;
+matls(air_matl_i).D = air_velocity ^ 2 * water_density;
+matls(air_matl_i).col = [1.0, 1.0, 1.0];
+matls(air_matl_i).name = 'Air';
+matls(air_matl_i).el_typ = 'AC2D3';
 
 %Define sub-domains
 s = 0;
@@ -95,31 +103,58 @@ subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd) + 2 * h_wall_thick, h_
 subdomain(s).inner_rad = 2e-3;
 
 %--------------------------------------------------------------------------
+
+%Get material bdrys
+[model_bdry, water_bdry1, water_bdry2, abs_bdry_pts, cladding_bdry_pts] = fn_AFPAC_geom( ...
+    model_length, model_height, ...
+    h_wall_thick, v_wall_thick, cladding_thick, abs_bdry_thickness, ...
+    int_radius, r_water_thick);
+
+%Work out element size
+el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
+
+%Create the nodes and elements of the mesh
+mod = fn_isometric_structured_mesh(model_bdry, el_size);
+
+%First set material of all elements to steel then set elements inside water 
+%boundary material to water
+mod.el_mat_i(:) = steel_matl_i;
+mod = fn_set_els_inside_bdry_to_mat(mod, water_bdry1, water_matl_i);
+mod = fn_set_els_inside_bdry_to_mat(mod, water_bdry2, water_matl_i);
+mod = fn_set_els_inside_bdry_to_mat(mod, cladding_bdry_pts, gold_matl_i);
+
+%Add interface elements - this is crucial otherwise there will be no
+%coupling between fluid and solid
+mod = fn_add_fluid_solid_interface_els(mod, matls);
+
+%Define the absorbing layer
+mod = fn_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
+
+
 %Build main model
 % main = fn_AFPAC_model( ...
 %     matls, centre_freq, els_per_wavelength, model_length, model_height, ...
 %     h_wall_thick, v_wall_thick, cladding_thick, abs_layer_thick, ...
 %     int_radius, r_water_thick, trans_cent, trans_size, trans_angd, subdomain);
-main = fn_AFPAC_model_array( ...
-    matls, centre_freq, els_per_wavelength, model_length, model_height, ...
-    h_wall_thick, v_wall_thick, cladding_thick, abs_layer_thick, ...
-    int_radius, r_water_thick, trans_cent, trans_size, trans_angd, subdomain, 2);
+% main = fn_AFPAC_model_array( ...
+%     matls, centre_freq, els_per_wavelength, model_length, model_height, ...
+%     h_wall_thick, v_wall_thick, cladding_thick, abs_layer_thick, ...
+%     int_radius, r_water_thick, trans_cent, trans_size, trans_angd, subdomain, 2);
 
-display_options = [];
-display_options.matl_cols = [
-    hsv2rgb([2/3,0,0.80]), %gray
-    [0.8672, 0.9375, 0.1875], %gold
-    hsv2rgb([0.6,0.5,0.8]), %nice military blue!
-    [1.0, 1.0, 1.0]]; %White for air
-display_options.draw_elements = 0;
-display_options.interface_el_col = 'k';
 
-% if show_geom_only
-%     %Show geometry
-%     figure;
-%     h_patch = fn_show_GL_geometry(main, options);
-%     return
-% end
+if show_geom_only
+    %Show geometry
+    figure;
+    display_options.draw_elements = 0;
+    % display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
+    % display_options.node_sets_to_plot(1).col = 'r.';
+    h_patch = fn_show_geometry(mod, matls, display_options);
+
+    % fn_plot_line(abs_bdry_pts, 'r', 1);
+    % fn_plot_line(water_bdry1, 'b', 1);
+    % fn_plot_line(water_bdry2, 'b', 1);
+    return
+end
 
 %--------------------------------------------------------------------------
 
