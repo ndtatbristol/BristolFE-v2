@@ -1,6 +1,5 @@
 function main = fn_run_subdomain_model(main, options)
 default_options.doms_to_run = 1:numel(main.doms);
-default_options.scats_to_run = [];
 default_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 default_options.rx_trans = 1:numel(main.trans); %by default all transducers are also receivers
 default_options.field_output_every_n_frames = inf;
@@ -17,166 +16,94 @@ end
 
 %Run the scatterer models
 for d = options.doms_to_run
-    if isempty(options.scats_to_run)
-        scats_to_run = 1:numel(main.doms{options.doms_to_run(d)}.scats);
-    else
-        scats_to_run = options.scats_to_run;
-    end
-    for s = scats_to_run
-        for si = 1:numel(options.tx_trans) %si is step counter for FE, one step per transmitting transducer
-            %Associated transducer index for this forcing
-            t = options.tx_trans(si);
+    main.doms{d}.res.fmc.time_data = zeros(size(main.res.fmc.time_data));
+    for si = 1:numel(options.tx_trans) %si is step counter for FE, one step per transmitting transducer
+        t = options.tx_trans(si);
 
-            %Work out forcing in this domain
-            gl_gi = fn_gl_ind_for_nd_and_dof(...
-                main.res.mats.gl_lookup, ...
-                main.doms{d}.trans{t}.mn_nd_i, ...
-                main.doms{d}.trans{t}.dfs);
-            [dom_frcs, frce_set] = fn_convert_disps_to_forces_v2(...
-                main.res.mats.K(gl_gi,gl_gi), ...
-                main.res.mats.C(gl_gi,gl_gi), ...
-                main.res.mats.M(gl_gi,gl_gi), ...
-                time_step, ...
-                main.doms{d}.trans{t}.dsps, ...
-                main.doms{d}.trans{t}.bdry_lyrs, 'in');
-            dom_frc_main_nd_i = main.doms{d}.trans{t}.mn_nd_i(frce_set);
-            dom_dfs = main.doms{d}.trans{t}.dfs(frce_set);
+        %Figure out which nodes in domain we need displacements for
+        dm_bdry_nds_i = find(main.doms{d}.mod.bdry_lyrs > 0);
+        
+        %And the equivalent main nodes
+        mn_bdry_nds_i = main.doms{d}.mod.main_nd_i(dm_bdry_nds_i);
 
-            %Copy forcing from domain to scatterer model, taking account
-            %the node numbers
-            [   steps{si}.load.frc_nds, ...
-                steps{si}.load.frc_dfs, ...
-                steps{si}.load.frcs, ...
-                steps{si}.load.time] = ...
-            fn_GL_copy_from_main_to_local(...
-                main.doms{d}.scats{s}.mod.main_nd_i, ...
-                dom_frc_main_nd_i, ...
-                dom_dfs, ...
-                dom_frcs, ...
-                main.inp.time);
+        %Get the corresponding indices into the main results data
+        %(mn_res_i) as well as the corresponding domain nodes / DoFs
+        [mn_res_i, dm_res_nds_i] = fn_dm_to_mn(mn_bdry_nds_i, dm_bdry_nds_i, main.res.trans{t}.dsp_nds);
 
-            %Copy monitoring from domain to scatterer model, taking account
-            %the node numbers
-            [   steps{si}.mon.nds, ...
-                steps{si}.mon.dfs, ...
-                steps{si}.mon.field_output_every_n_frames] = ...
-            fn_GL_copy_from_main_to_local(...
-                main.doms{d}.scats{s}.mod.main_nd_i, ...
-                main.doms{d}.trans{t}.mn_nd_i, ...
-                main.doms{d}.trans{t}.dfs, ...
-                options.field_output_every_n_frames);
-        end
+        %Get the displacements at the boudary from the main model as well
+        %as DoF and layer indices
+        bdry_dsps = main.res.trans{t}.dsps(mn_res_i, :);
+        bdry_dfs = main.res.trans{t}.dsp_dfs(mn_res_i);
+        bdry_lyrs = main.doms{d}.mod.bdry_lyrs(dm_res_nds_i);
 
-        %Actually run the FE for all transducers on this scat
-        res = fn_BristolFE_v2(main.doms{d}.scats{s}.mod, main.matls, steps, options);
+        gl_i = fn_gl_ind_for_nd_and_dof(...
+            main.res.mats.gl_lookup, ...
+            main.res.trans{t}.dsp_nds(mn_res_i), ...
+            main.res.trans{t}.dsp_dfs(mn_res_i));
 
-        %Parse the field results
-        for si = 1:numel(options.tx_trans)
-            t = options.tx_trans(si);
-            %copy field results
-            main.doms{d}.scats{s}.trans{t}.fld = res{si}.fld;
-            main.doms{d}.scats{s}.trans{t}.fld_time = res{si}.fld_time;
-        end
+        %Get relevant sub matrices
+        K_sub = main.res.mats.K(gl_i, gl_i);
+        C_sub = main.res.mats.C(gl_i, gl_i);
+        M_sub = main.res.mats.M(gl_i, gl_i);
+
+        %Convert to forces
+        [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
+            K_sub, C_sub, M_sub, time_step, bdry_dsps, bdry_lyrs, 'in');
+
+        %Create the load step - forcing
+        steps{si}.load.frc_nds = dm_res_nds_i(frce_set);
+        steps{si}.load.frc_dfs = bdry_dfs(frce_set);
+        steps{si}.load.frcs = frcs;
+        steps{si}.load.time = main.inp.time;
+
+        %Create the load step - monitoring
+        steps{si}.mon.nds = dm_res_nds_i;
+        steps{si}.mon.dfs = bdry_dfs;
+        steps{si}.mon.field_output_every_n_frames = options.field_output_every_n_frames;
 
     end
 
+    %Run the model for all incident fields
+    res = fn_BristolFE_v2(main.doms{d}.mod, main.matls, steps, options);
 
+    %Parse the field results
+    for si = 1:numel(options.tx_trans)
+        t = options.tx_trans(si);
+        main.doms{d}.res.trans{t}.fld = res{si}.fld;
+        main.doms{d}.res.trans{t}.fld_time = res{si}.fld_time;
+    end
 
-    %OK I think to here - correct incident field generated
-    %Now need to pick up scattered field, convert to forces and
-    %reciprocate!
+    %Parse the history results (these are not saved, just used to calcualte
+    %the received signals in the main model
+    for si = 1:numel(options.tx_trans)
+        t = options.tx_trans(si);
+        bdry_dsps = res{si}.dsps;
+        [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
+            K_sub, C_sub, M_sub, time_step, bdry_dsps, bdry_lyrs, 'out');
 
-    % for tx = 1:numel(tx_to_run)
-    %     %following should be in a function (used in main model as wells)
-    %     gl_gi = fn_gl_ind_for_nd_and_dof(...
-    %         main.doms{d}.scats{s}.mats.gl_lookup, ...
-    %         main.doms{d}.res{tx}.dsp_gl_nds, ...
-    %         main.doms{d}.scats{s}.res{tx}.dsp_dfs);
-    %     [main.doms{d}.scats{s}.res{tx}.frcs, force_set] = fn_convert_disps_to_forces_v2(...
-    %         main.doms{d}.scats{s}.mats.K(gl_gi,gl_gi), ...
-    %         main.doms{d}.scats{s}.mats.C(gl_gi,gl_gi), ...
-    %         main.doms{d}.scats{s}.mats.M(gl_gi,gl_gi), ...
-    %         time_step, main.doms{d}.scats{s}.res{tx}.dsps, ...
-    %         main.doms{d}.res{tx}.dsp_lys, 'out');
-    %     main.doms{d}.scats{s}.res{tx}.frc_nds = main.doms{d}.scats{s}.res{tx}.dsp_nds(force_set);
-    %     main.doms{d}.scats{s}.res{tx}.frc_gl_nds = main.doms{d}.scats{s}.res{tx}.dsp_gl_nds(force_set);
-    %     main.doms{d}.scats{s}.res{tx}.frc_dfs = main.doms{d}.scats{s}.res{tx}.dsp_dfs(force_set);        %
-    %
-    % end
-    % %Build global matrices for scatterer model if nesc
-    % if ~isfield(main.doms{doms_to_run(d)}.scats{scats_to_run(s)}, 'mats')
-    %     [main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.K, ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.C, ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.M, ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.gl_lookup] = ...
-    %     fn_build_global_matrices_v4(...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.nds, ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.els, ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.el_mat_i, ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.el_abs_i, ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.el_typ_i, ...
-    %         main.mod.matls, options);
-    %     k = find(main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_lys2 > 0); %boundary nodes in scat model
-    %     [main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_gi, ~, ~, nd_i] = ...
-    %         fn_global_indices_for_all_dof_at_nodes(...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.gl_lookup, k); %assoc global DOF in scat model
-    %     % main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_lys_gi = main.doms{doms_to_run(d)}.mod.bdry_lys(nd_i); %%%%%
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_lys_gi = ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_lys2(k(nd_i)); %assoc layer indices
-    % end
-
-    %Run scatterer model for each incident field - get the incident displacements at bndry nodes from main
-    %**Would be more logical and tidier to put the relevant incident fields
-    %into the domain models after the pristine model is run
-    % bdry_gi = main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_gi;
-    % tx_trans_fns = main.res.tx_rx{tx_to_run(t)}.hist(main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.main_hist_gi, :);
-    % bdr_frc_gi = main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.main_hist_gi(...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_lys_gi == 2 | ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_lys_gi == 3);
-    % time_step = main.mod.time(2) - main.mod.time(1);
-    % [inc_forces, force_set] = fn_convert_disps_to_forces_v2(...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.K(bdry_gi, bdry_gi), ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.C(bdry_gi, bdry_gi), ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.M(bdry_gi, bdry_gi), ...
-    %     time_step, tx_trans_fns, ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_lys_gi , 'in');
-    %
-    % %Run the solver
-    % fprintf('Running scatterer model %i in sub-doms %i for excitation %i ', s, doms_to_run(d), tx_to_run(t));
-    % [scat_disp, main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.res.tx_rx{tx_to_run(t)}.f_out, ~] = fn_explicit_dynamic_solver_v5(...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.K, main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.C, ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.M, main.mod.time, ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_gi(force_set), inc_forces, ... %forcing functions
-    %     [], [], ... %disp input functions
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_gi, field_output_every_n_frames, options.use_gpu_if_available);
-    %
-    % %Convert outgoing displacements to forces
-    % [scat_forces, force_set, ~, ~] = fn_convert_disps_to_forces_v2(...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.K(bdry_gi, bdry_gi), ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.C(bdry_gi, bdry_gi), ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mats.M(bdry_gi, bdry_gi), ...
-    %     time_step, scat_disp, ...
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.bdry_lys_gi , 'out');
-    % main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.res.tx_rx{t}.scat_force = scat_forces;
-    %
-    % %Use reciprocity to map these back to displacements at receivers
-    % %NB in the final output, rx is the scattered signal + pristine result for display purposes;
-    % %hist is just the scattered sgnal
-    %
-    % main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.res.tx_rx{tx_to_run(t)}.hist = zeros(numel(main.res.tx_rx), numel(main.mod.time));
-    % main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.res.tx_rx{tx_to_run(t)}.rx = zeros(numel(main.res.tx_rx), numel(main.mod.time));
-    %
-    % %deconv_disp_input_from_main(bdr_frc_gi, :);
-    % for r = 1:numel(main.res.tx_rx)
-    %     rx_trans_fns = main.res.tx_rx{r}.hist(main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.mod.main_hist_gi, :);
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.res.tx_rx{tx_to_run(t)}.hist(r,:) = ...
-    %         sum(fn_convolve(...
-    %         scat_forces, ...
-    %         rx_trans_fns(force_set, :), 2));
-    %
-    %     main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.res.tx_rx{tx_to_run(t)}.rx(r,:) = ...
-    %         main.doms{doms_to_run(d)}.scats{scats_to_run(s)}.res.tx_rx{tx_to_run(t)}.hist(r,:) + ...
-    %         main.res.tx_rx{t}.rx(r,:);
+        %Loop over receivers
+        for r = options.rx_trans
+            %Main nodes and DoFs associated with forcing points
+            mn_nds_i = main.doms{d}.mod.main_nd_i(res{t}.dsp_nds(frce_set));
+            mn_bdry_nds_dfs = [mn_nds_i, res{t}.dsp_dfs(frce_set)];
+            mn_all_nds_dfs = [main.res.trans{r}.dsp_nds, main.res.trans{r}.dsp_dfs];
+            
+            %Convolve with relevant receiver transfer function
+            i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
+            tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2));
+            
+            %Stick it in the FMC data for this domain
+            k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
+            main.doms{d}.res.fmc.time_data(:, k) = tmp(:);
+        end
+    end
+    
 end
 
+end
+
+function [mn_res_i, dm_res_nds_i] = fn_dm_to_mn(mn_bdry_nds_i, dm_bdry_nds_i, mn_res_nds_i)
+mn_res_i = ismember(mn_res_nds_i, mn_bdry_nds_i);
+[~, j] = ismember(mn_res_nds_i(mn_res_i), mn_bdry_nds_i);
+dm_res_nds_i = dm_bdry_nds_i(j);
 end

@@ -6,13 +6,9 @@ display_options = fn_set_default_fields(display_options, default_options);
 
 
 no_doms = numel(main.doms);
-max_scats = 0;
 max_dom_size = [0, 0];
 for d = 1:no_doms
-    max_scats = max(max_scats, numel(main.doms{d}.scats));
-    for s = 1:numel(main.doms{d}.scats)
-        max_dom_size = max(max_dom_size, max(main.doms{d}.scats{s}.mod.nds) - min(main.doms{d}.scats{s}.mod.nds));
-    end
+        max_dom_size = max(max_dom_size, max(main.doms{d}.mod.nds) - min(main.doms{d}.mod.nds));
 end
 
 main_dims = max(main.mod.nds) - min(main.mod.nds);
@@ -29,21 +25,19 @@ h_patch{p} = fn_show_geometry(main.mod, main.matls, display_options);
 hold on;
 offset = [0, 0];
 for d = 1:no_doms
-    max_scats = max(max_scats, numel(main.doms{d}.scats));
     offset(1) = (d - 1) * step(1);
-    for s = 1:numel(main.doms{d}.scats)
-        p = p + 1;
-        offset(2) = -(s - 1) * step(2) - sep;
-        display_options.scale = scale;
-        display_options.offset = offset - [min(main.doms{d}.scats{s}.mod.nds(:,1)), max(main.doms{d}.scats{s}.mod.nds(:,2))] * scale;
-        h_patch{p} = fn_show_geometry(main.doms{d}.scats{s}.mod, main.matls, display_options);
-        col = display_options.dom_cols(rem(d - 1, numel(display_options.dom_cols)) + 1);
-        xy = fn_dom_coord(main.doms{d}.mod.inner_bndry_pts, display_options.scale, display_options.offset);
-        plot(xy(:, 1), xy(:, 2), col);
-        xy = fn_main_coord(main.doms{d}.mod.inner_bndry_pts, -min(main.mod.nds));
-        plot(xy(:, 1), xy(:, 2), col);
-    end
+    p = p + 1;
+    offset(2) = -sep;
+    display_options.scale = scale;
+    display_options.offset = offset - [min(main.doms{d}.mod.nds(:,1)), max(main.doms{d}.mod.nds(:,2))] * scale;
+    h_patch{p} = fn_show_geometry(main.doms{d}.mod, main.matls, display_options);
+    col = display_options.dom_cols(rem(d - 1, numel(display_options.dom_cols)) + 1);
+    xy = fn_dom_coord(main.doms{d}.mod.inner_bndry_pts, display_options.scale, display_options.offset);
+    plot(xy(:, 1), xy(:, 2), col);
+    xy = fn_main_coord(main.doms{d}.mod.inner_bndry_pts, -min(main.mod.nds));
+    plot(xy(:, 1), xy(:, 2), col);
 end
+
 end
 
 function xy = fn_dom_coord(p, scale, offset)

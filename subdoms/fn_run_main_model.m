@@ -81,13 +81,12 @@ end
 
 %Actually run the model for each transducer (need boundary data whether
 %transmitter or receiver anyway
-[res, mats] = fn_BristolFE_v2(main.mod, main.matls, steps, options);
+[res, main.res.mats] = fn_BristolFE_v2(main.mod, main.matls, steps, options);
 
 %Parse pristine field results to main.res{tx}.trans{t}
 for e = 1:numel(main.trans)
     %copy field results
-    main.res.trans{e}.fld = res{e}.fld;
-    main.res.trans{e}.fld_time = res{e}.fld_time;
+    main.res.trans{e} = res{e};
 end
 
 %Parse the pristine FMC results
@@ -114,78 +113,7 @@ for t = options.tx_trans
     end
 end
 
-%Parse domain results back to each domain. Need:
-%   1. The incident displacements for all active DoFs on layers 2 and 3,
-%   which will be used in subsequent reciprocity calcs to project the
-%   scattered fields back to transducer
-%   1. The forces, local nodes and DFs to apply in subsequent scatter
-%   models (these will be all active DoFs on layers 2 and 3)
-%ACtually, easier to just stick with disps at this stage; forces can be
-%worked out when scat models run
-main.res.mats = mats;
-for d = 1:numel(main.doms)
-    for e = 1:numel(main.trans)
-        main.doms{d}.trans{e} = fn_res_to_dom(res{e}, main.doms{d}.mod.bdry_lyrs, main.doms{d}.mod.main_nd_i);
-    end
-end
 
-
-%New version end
-
-
-%Generate main model global matrices if not already there
-% if ~isfield(main, 'mats')
-%     %build model stiffness matrices etc
-%     % [main.mats.K, main.mats.C, main.mats.M, main.mats.Q, main.mats.gl_lookup] = fn_build_global_matrices_v3(...
-%     %     main.mod.nds, main.mod.els, main.mod.el_mat_i, main.mod.el_abs_i, main.mod.matls);
-%     [main.mats.K, main.mats.C, main.mats.M, main.mats.gl_lookup] = fn_build_global_matrices_v4(...
-%         main.mod.nds, main.mod.els, main.mod.el_mat_i, main.mod.el_abs_i, main.mod.el_typ_i, main.mod.matls, options);
-%
-%     %Work out global indices and weights for transducer positions
-%     %this has to be done for all tx_rx because we still need the rx transfer functions even if only doing 1 tx
-%     for r = 1:numel(main.mod.tx_rx)
-%         [main.mod.tx_rx{r}.gl_ind, gl_nds, gl_dofs, nd_i] = fn_global_indices_for_all_dof_at_nodes(main.mats.gl_lookup, main.mod.tx_rx{r}.nds);
-%         main.mod.tx_rx{r}.wt = zeros(size(main.mod.tx_rx{r}.gl_ind));
-%         for i = 1:numel(main.mod.tx_rx{r}.wt)
-%             main.mod.tx_rx{r}.wt(i) = main.mod.tx_rx{r}.wt_by_dof(nd_i(i), gl_dofs(i));
-%         end
-%     end
-%
-%     %force main model to be re-run
-%     main = fn_clear_fields(main, 'res', 1, 1);
-% end
-%
-% %Run main model if necessary
-% if ~isfield(main, 'res')
-%     [main.res.hist_gi, main.doms] = fn_find_gl_inds_for_domains(main.mats.gl_lookup, main.doms);
-%
-%     h_ref = zeros(size(main.res.hist_gi)); %this is just used for decoding the history responses immediately after running model
-%     %work out which GL indices need to be monitored in full model for the tx rx
-%     %positions (we need the time signal at each eventually)
-%     for t = 1:numel(main.mod.tx_rx)
-%         tmp = main.mod.tx_rx{t}.gl_ind;
-%         main.res.hist_gi = [main.res.hist_gi; tmp];
-%         h_ref  = [h_ref; ones(size(tmp)) * t];
-%     end
-%     i = 1; %iteration - always 1 for pristine model run
-%     for t = 1:numel(tx_to_run)
-%         fprintf('Full run of main model for excitation %i ', tx_to_run(t));
-%         [h_out, main.res.tx_rx{tx_to_run(t)}.f_out, ~] = fn_explicit_dynamic_solver_v5(...
-%             main.mats.K, main.mats.C, main.mats.M, main.mod.time, ...
-%             main.mod.tx_rx{tx_to_run(t)}.gl_ind, main.mod.tx_rx{tx_to_run(t)}.wt * main.mod.input, ... %forcing input functions
-%             [], [], ... %disp input functions
-%             main.res.hist_gi, options.field_output_every_n_frames, options.use_gpu_if_available);
-%Extract displacement histories at monitoring nodes - thes need to
-%be deconvolved with input signal
-%     main.res.tx_rx{tx_to_run(t)}.hist = h_out(h_ref == 0, :); %h_ref == 0 flags the history outputs on boundary nodes of domains - this is what is extracted for running scatterer models
-%     % main.res.tx_rx{tx_to_run(t)}.deconv_hist = fn_deconvolve(h_out(h_ref == 0, :), main.mod.input, 2, 1e-3);
-%
-%     %Extract A-scans for all receive elements
-%     main.res.tx_rx{tx_to_run(t)}.rx = zeros(numel(main.mod.tx_rx), numel(main.mod.time));
-%     for r = 1:numel(main.mod.tx_rx)
-%         main.res.tx_rx{tx_to_run(t)}.rx(r, :) = main.mod.tx_rx{r}.wt.' * h_out(h_ref == r, :);
-%     end
-% end
 end
 
 function step = fn_convert_to_step_data(t, inp, frc_nds, frc_dfs, mon_nds, mon_dfs, f_every)
@@ -198,28 +126,3 @@ step.mon.dfs = mon_dfs;
 step.mon.field_output_every_n_frames = f_every;
 end
 
-function trans = fn_res_to_dom(res, dom_bdry_lyrs, dom_main_nd_i)
-
-%At start we have res.dsp_nds, res.dsp_dfs and res.dsps where dsp_nds are
-%main nodes, because in this case the FE run generating res was for the
-%main domain
-
-%We want to extract results from just the boundary nodes for the domain so
-%first work out which main node numbers these correspond to
-i = dom_bdry_lyrs > 0;
-mn_nd_i = dom_main_nd_i(i);
-dom_lyr = dom_bdry_lyrs(i);
-
-%Identify all rows in res associated with these nodes (all DoF)
-[i, j] = ismember(res.dsp_nds, mn_nd_i);
-
-%Copy these rows across to output
-trans.mn_nd_i = res.dsp_nds(i);
-trans.dsps = res.dsps(i, :);
-trans.dfs = res.dsp_dfs(i);
-
-%Finally we also need the layer index for each row
-dom_nd_i = j(i);
-trans.bdry_lyrs = dom_lyr(dom_nd_i);
-
-end

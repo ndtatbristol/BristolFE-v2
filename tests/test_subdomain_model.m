@@ -148,8 +148,15 @@ a = linspace(0,2*pi,361)';
 for d = 1:numel(subdomain)
     inner_bdry = subdomain(d).cent + subdomain(d).inner_rad * [cos(a), sin(a)];
     main.doms{d} = fn_create_subdomain(main.mod, inner_bdry, abs_bdry_thickness);
-    main.doms{d}.scats{1}.mod = main.doms{d}.mod;
+    % main.doms{d}.scats{1}.mod = main.doms{d}.mod;
 end
+
+%Test robustness of calcs by scrambling node order in subdomain
+d = 1;
+new_nd_i = randperm(size(main.doms{d}.mod.nds, 1))';
+[main.doms{d}.mod.nds, main.doms{d}.mod.els, old_nd_i] = fn_renumber_nodes(main.doms{d}.mod.nds, main.doms{d}.mod.els, new_nd_i);
+main.doms{d}.mod.main_nd_i = main.doms{d}.mod.main_nd_i(new_nd_i);
+main.doms{d}.mod.bdry_lyrs = main.doms{d}.mod.bdry_lyrs(new_nd_i);
 
 if show_geom_only
     %Show geometry
@@ -168,21 +175,22 @@ time_pts = 2500;
 main = fn_run_main_model(main, time_pts, fe_options);
 
 %Animate main runs
-figure;
-h_patch = fn_show_geometry(main.mod, main.matls, fe_options);
-for t = 1:numel(main.res.trans)
-    fn_run_animation(h_patch, main.res.trans{t}.fld, fe_options);
-end
+% figure;
+% h_patch = fn_show_geometry(main.mod, main.matls, fe_options);
+% for t = 1:numel(main.res.trans)
+%     fn_run_animation(h_patch, main.res.trans{t}.fld, fe_options);
+% end
 
 % return
 fe_options.doms_to_run = 1;
-fe_options.scats_to_run_in = 1;
 main = fn_run_subdomain_model(main, fe_options);
+% main = fn_run_subdomain_model_obs(main, fe_options);
 
 figure;
-h_patch = fn_show_geometry(main.doms{1}.scats{1}.mod, main.matls, fe_options)
+anim_options.repeat_n_times = 3;
+h_patch = fn_show_geometry(main.doms{1}.mod, main.matls, anim_options)
 for t = 1:numel(main.res.trans)
-    fn_run_animation(h_patch, main.doms{1}.scats{1}.trans{t}.fld, fe_options);
+    fn_run_animation(h_patch, main.doms{1}.res.trans{t}.fld, anim_options);
 end
 
 return
