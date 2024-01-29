@@ -15,7 +15,9 @@ M_sub = spdiags(sum(M_sub).', 0, size(M_sub,1), size(M_sub,2));
 tmp = [zeros(size(disp_inp, 1), 2), disp_inp];
 accn = (tmp(:, 3:end) - 2 * tmp(:, 2:end-1) + tmp(:, 1:end-2)) / time_step ^ 2;
 vel = (tmp(:, 2:end - 1) - tmp(:, 1:end - 2)) / time_step;
-disp = [zeros(size(disp_inp, 1), 1), disp_inp(:, 1:end -1)];
+disp = [zeros(size(disp_inp, 1), 1), disp_inp(:, 1:end - 1)];
+% disp = [zeros(size(disp_inp, 1), 2), disp_inp(:, 1:end - 2)];
+% disp = disp_inp;
 force_inp  = ...
         M_sub(force_set, :) * accn + ...
         C_sub(force_set, :) * vel + ...

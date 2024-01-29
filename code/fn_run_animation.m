@@ -18,14 +18,21 @@ default_options.norm_val = [];
 default_options.repeat_n_times = 1;
 anim_options = fn_set_default_fields(anim_options, default_options);
 
-if isempty(anim_options.norm_val)
-    anim_options.norm_val = max(abs(fld), [], 'all');
-end
-
 if ~iscell(h_patch)
     h_patch = {h_patch};
+end
+
+if ~iscell(fld)
     fld = {fld};
 end
+
+if isempty(anim_options.norm_val)
+    anim_options.norm_val = 0;
+    for f = 1:numel(fld)
+        anim_options.norm_val = max(max(abs(fld{f}(:)), [], 'all'), anim_options.norm_val);
+    end
+end
+
 
 if ~isempty(anim_options.mp4_out)
     if isinf(anim_options.repeat_n_times)
@@ -53,16 +60,18 @@ end
 for a = 1:anim_options.repeat_n_times
     for ti = anim_options.min_ti:anim_options.ti_step:min(anim_options.max_ti, size(fld{1}, 2))
         for i = 1:numel(h_patch)
-            if ti == anim_options.min_ti && a == 1
-                base_cdata{i} = get(h_patch{i}, 'CData');
-                max_cdata = permute(anim_options.wave_color, [3,1,2]);
+            if ~isempty(fld{i})
+                if ti == anim_options.min_ti && a == 1
+                    base_cdata{i} = get(h_patch{i}, 'CData');
+                    max_cdata = permute(anim_options.wave_color, [3,1,2]);
+                end
+                %Note animation data is already in energy, hence dB is 10 * log10(.),
+                %not 20 * log10(.)
+                v = (10 * log10(fld{i}(:, ti) / anim_options.norm_val) - anim_options.db_range(1)) / (anim_options.db_range(2) - anim_options.db_range(1));
+                v(v < 0) = 0;
+                v(v > 1) = 1;
+                set(h_patch{i}, 'CData', base_cdata{i} .* (1 - v) + v .* max_cdata);
             end
-            %Note animation data is already in energy, hence dB is 10 * log10(.),
-            %not 20 * log10(.)
-            v = (10 * log10(fld{i}(:, ti) / anim_options.norm_val) - anim_options.db_range(1)) / (anim_options.db_range(2) - anim_options.db_range(1));
-            v(v < 0) = 0;
-            v(v > 1) = 1;
-            set(h_patch{i}, 'CData', base_cdata{i} .* (1 - v) + v .* max_cdata);
         end
         pause(anim_options.pause_value);
         if ~isempty(anim_options.mp4_out)

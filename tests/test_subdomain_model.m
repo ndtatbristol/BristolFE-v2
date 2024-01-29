@@ -1,6 +1,6 @@
 %Test of subdomain model
 
-clear;
+clear all;
 close all;
 % restoredefaultpath;
 addpath(genpath(fullfile('..', 'code')));
@@ -16,10 +16,14 @@ do_no_defect_cases = 1;
 do_defect_cases = 0;
 do_validation = 0;
 do_direct_injection = 0;
-els_per_wavelength = 4; %4 for testing, 6+ for real thing
+
+els_per_wavelength = 7; %4 for testing, 6+ for real thing
+safety_factor = 3;
+time_pts = 2000;
 
 fe_options.field_output_every_n_frames = 20;
 fe_options.movie_mode = 1;
+fe_options.dof_to_use = [1,2,4];
 scatterer_of_interest = 3;
 
 % options.field_output_every_n_frames = inf;
@@ -52,7 +56,7 @@ trans_size = 6e-3;
 trans_cent = [abs_bdry_thickness + trans_size / 2, 15e-3];
 trans_angd = 20.6; %angle from horisontal: 20.6 for S and 10.8 to L at 45
 
-time_pts = round(els_per_wavelength / 6 * 20000); %put up to 14k for 6 el/lambda
+% time_pts = round(els_per_wavelength / 6 * 20000); %put up to 14k for 6 el/lambda
 
 %Materials
 steel_matl_i = 1;
@@ -76,12 +80,12 @@ main.matls(water_matl_i).col = hsv2rgb([0.6,0.5,0.8]);
 main.matls(water_matl_i).name = 'Water';
 main.matls(water_matl_i).el_typ = 'AC2D3';
 
-air_matl_i = 4;
-main.matls(air_matl_i).rho = air_density;
-main.matls(air_matl_i).D = air_velocity ^ 2 * water_density;
-main.matls(air_matl_i).col = [1.0, 1.0, 1.0];
-main.matls(air_matl_i).name = 'Air';
-main.matls(air_matl_i).el_typ = 'AC2D3';
+% air_matl_i = 4;
+% main.matls(air_matl_i).rho = air_density;
+% main.matls(air_matl_i).D = air_velocity ^ 2 * water_density;
+% main.matls(air_matl_i).col = [1.0, 1.0, 1.0];
+% main.matls(air_matl_i).name = 'Air';
+% main.matls(air_matl_i).el_typ = 'AC2D3';
 
 %Define sub-domains
 
@@ -90,18 +94,20 @@ d = 1;
 h = trans_cent(2) - h_wall_thick;
 subdomain(d).cent = [trans_cent(1) + h * sind(trans_angd), h_wall_thick];
 subdomain(d).inner_rad = 2e-3;
+d = d + 1;
+
 % subdomain(d).cent = [trans_cent(1) + h * sind(trans_angd), h_wall_thick - 2.5e-3];
 % subdomain(d).inner_rad = 2e-3;
 
 % % %2 On back wall
-% subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd) + h_wall_thick, 0];
-% subdomain(s).inner_rad = 2e-3;
-% s = s + 1;
+% subdomain(d).cent = [trans_cent(1) + h * sind(trans_angd) + h_wall_thick, 0];
+% subdomain(d).inner_rad = 2e-3;
+% d = d + 1;
 % 
 % %3 On radius
-% subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd) + 2 * h_wall_thick, h_wall_thick];
-% subdomain(s).inner_rad = 2e-3;
-% s = s + 1;
+% subdomain(d).cent = [trans_cent(1) + h * sind(trans_angd) + 2 * h_wall_thick, h_wall_thick];
+% subdomain(d).inner_rad = 2e-3;
+% d = d + 1;
 
 %--------------------------------------------------------------------------
 
@@ -117,7 +123,7 @@ el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 main.mod = fn_isometric_structured_mesh(model_bdry, el_size);
-main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
+main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size, safety_factor);
 main.mod.design_centre_freq = centre_freq;
 
 %First set material of all elements to steel then set elements inside water 
@@ -135,7 +141,7 @@ main.mod = fn_add_fluid_solid_interface_els(main.mod, main.matls);
 main.mod = fn_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
 
 %Define transducer
-no_array_els = 2;
+no_array_els = 1;
 array_el_size = trans_size / no_array_els;
 el_cents = linspace(-0.5, 0.5, no_array_els)' * (trans_size - array_el_size) * [cosd(trans_angd), sind(trans_angd)] + trans_cent;
 for e = 1:no_array_els
@@ -173,28 +179,25 @@ end
 %--------------------------------------------------------------------------
 
 %Run main model
-time_pts = 2500;
 main = fn_run_main_model(main, time_pts, fe_options);
 
-%Animate main runs
+%Animate main runs only
 % figure;
 % h_patch = fn_show_geometry(main.mod, main.matls, fe_options);
 % for t = 1:numel(main.res.trans)
 %     fn_run_animation(h_patch, main.res.trans{t}.fld, fe_options);
 % end
-
 % return
-fe_options.doms_to_run = 1;
+
+fe_options.doms_to_run = [];
 main = fn_run_subdomain_model(main, fe_options);
-% main = fn_run_subdomain_model_obs(main, fe_options);
 
 figure;
-anim_options.repeat_n_times = 3;
-anim_options.db_range = [-120, 0];
-h_patch = fn_show_geometry(main.doms{1}.mod, main.matls, anim_options)
-for t = 1:numel(main.res.trans)
-    fn_run_animation(h_patch, main.doms{1}.res.trans{t}.fld, anim_options);
-end
+anim_options.repeat_n_times = 1;
+anim_options.db_range = [-40, 0];
+anim_options.pause_value = 0.25;
+h_patches = fn_show_geometry_with_subdomains(main, anim_options);
+fn_run_subdomain_animations(main, h_patches, anim_options);
 
 return
 

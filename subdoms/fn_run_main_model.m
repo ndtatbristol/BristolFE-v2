@@ -1,4 +1,4 @@
-function main = fn_run_main_model(main, time_pts, options)
+function main = fn_run_main_model(main, time_pts, fe_options)
 default_options.centre_freq = main.mod.design_centre_freq;
 default_options.number_of_cycles = 5;
 default_options.time_step = main.mod.max_safe_time_step;
@@ -8,10 +8,10 @@ default_options.dof_to_use = [1:4];
 default_options.movie_mode = 0; %when this is one, the input signal is set to be the toneburst rather than an impulse, so movies look nice. Other results will be wrong!!!
 default_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 default_options.rx_trans = 1:numel(main.trans); %by default all transducers are also receivers
-options = fn_set_default_fields(options, default_options);
+fe_options = fn_set_default_fields(fe_options, default_options);
 
 %Runs everything necessary
-time_step = options.time_step;
+time_step = fe_options.time_step;
 if isempty(time_pts)
     %choose  number of points for slowest wave to traverse largest
     %dimension of model
@@ -37,10 +37,10 @@ main.inp.time = [0:time_pts - 1] * time_step;
 
 %The desired output only affects how final A-scans are filtered; it does
 %not change the FE runs, which are performed with impulse excitation.
-main.inp.sig = fn_gaussian_pulse(main.inp.time, options.centre_freq, options.number_of_cycles);
+main.inp.sig = fn_gaussian_pulse(main.inp.time, fe_options.centre_freq, fe_options.number_of_cycles);
 
 %Main model is always run with impulse excitation unless in movie mode
-if options.movie_mode
+if fe_options.movie_mode
     inp = main.inp.sig;
 else
     inp = zeros(size(main.inp.time));
@@ -64,7 +64,7 @@ for e = 1:numel(main.trans)
 end
 
 mon_nds = find(mon_nds);
-[mon_nds, mon_dfs] = meshgrid(mon_nds, options.dof_to_use);
+[mon_nds, mon_dfs] = meshgrid(mon_nds, fe_options.dof_to_use);
 mon_nds = mon_nds(:);
 mon_dfs = mon_dfs(:);
 
@@ -76,36 +76,36 @@ for e = 1:numel(main.trans)
     steps{e} = fn_convert_to_step_data(...
         main.inp.time, inp, ...
         main.trans{e}.nds, main.trans{e}.dfs, ...
-        mon_nds, mon_dfs, options.field_output_every_n_frames);
+        mon_nds, mon_dfs, fe_options.field_output_every_n_frames);
 end
 
 %Actually run the model for each transducer (need boundary data whether
 %transmitter or receiver anyway
-[res, main.res.mats] = fn_BristolFE_v2(main.mod, main.matls, steps, options);
+[res, main.res.mats] = fn_BristolFE_v2(main.mod, main.matls, steps, fe_options);
 
 %Parse pristine field results to main.res{tx}.trans{t}
 valid_mon_dsps = res{1}.valid_mon_dsps; %same for all steps
 for e = 1:numel(main.trans)
     %copy field results
     main.res.trans{e} = res{e};
-    main.res.trans{e}.dsps = main.res.trans{e}.dsps(valid_mon_dsps,:)
+    main.res.trans{e}.dsps = main.res.trans{e}.dsps(valid_mon_dsps,:);
 end
 main.res.mon_nds = mon_nds(valid_mon_dsps);
 main.res.mon_dfs = mon_dfs(valid_mon_dsps);
 
 %Parse the pristine FMC results
-[main.res.fmc.tx, main.res.fmc.rx] =meshgrid(options.tx_trans, options.rx_trans);
+[main.res.fmc.tx, main.res.fmc.rx] =meshgrid(fe_options.tx_trans, fe_options.rx_trans);
 main.res.fmc.tx = main.res.fmc.tx(:)';
 main.res.fmc.rx = main.res.fmc.rx(:)';
 main.res.fmc.time_data = zeros(numel(main.inp.time), numel(main.res.fmc.rx(:)));
 
 %TODO Need to add array details in usual format here
 
-for t = options.tx_trans
-    for r = options.rx_trans
+for t = fe_options.tx_trans
+    for r = fe_options.rx_trans
         k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
         % i = ismember(res{t}.dsp_nds, mon_nds(main.trans{r}.nds));
-        i = ismember(steps{t}.mon.nds, mon_nds(main.trans{r}.nds));
+        i = ismember(steps{t}.mon.nds, main.trans{r}.nds);
 
         % gl_nds = res{t}.dsp_nds(i);
         tmp = res{t}.dsps(i, :);

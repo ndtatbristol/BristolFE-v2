@@ -1,4 +1,4 @@
-function h_patch = fn_show_geometry_with_subdomains(main, display_options)
+function h_patches = fn_show_geometry_with_subdomains(main, display_options)
 
 default_options.sep_frac = 0.1;
 default_options.dom_cols = 'rgbcmy';
@@ -21,7 +21,7 @@ p = 1;
 display_options.scale = 1;
 display_options.offset = -min(main.mod.nds);
 display_options.node_sets_to_plot = [];
-h_patch{p} = fn_show_geometry(main.mod, main.matls, display_options);
+h_patches{p} = fn_show_geometry(main.mod, main.matls, display_options);
 hold on;
 offset = [0, 0];
 for d = 1:no_doms
@@ -30,7 +30,7 @@ for d = 1:no_doms
     offset(2) = -sep;
     display_options.scale = scale;
     display_options.offset = offset - [min(main.doms{d}.mod.nds(:,1)), max(main.doms{d}.mod.nds(:,2))] * scale;
-    h_patch{p} = fn_show_geometry(main.doms{d}.mod, main.matls, display_options);
+    h_patches{p} = fn_show_geometry(main.doms{d}.mod, main.matls, display_options);
     col = display_options.dom_cols(rem(d - 1, numel(display_options.dom_cols)) + 1);
     xy = fn_dom_coord(main.doms{d}.mod.inner_bndry_pts, display_options.scale, display_options.offset);
     plot(xy(:, 1), xy(:, 2), col);
