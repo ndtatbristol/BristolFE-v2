@@ -90,6 +90,8 @@ d = 1;
 h = trans_cent(2) - h_wall_thick;
 subdomain(d).cent = [trans_cent(1) + h * sind(trans_angd), h_wall_thick];
 subdomain(d).inner_rad = 2e-3;
+% subdomain(d).cent = [trans_cent(1) + h * sind(trans_angd), h_wall_thick - 2.5e-3];
+% subdomain(d).inner_rad = 2e-3;
 
 % % %2 On back wall
 % subdomain(s).cent = [trans_cent(1) + h * sind(trans_angd) + h_wall_thick, 0];
@@ -188,6 +190,7 @@ main = fn_run_subdomain_model(main, fe_options);
 
 figure;
 anim_options.repeat_n_times = 3;
+anim_options.db_range = [-120, 0];
 h_patch = fn_show_geometry(main.doms{1}.mod, main.matls, anim_options)
 for t = 1:numel(main.res.trans)
     fn_run_animation(h_patch, main.doms{1}.res.trans{t}.fld, anim_options);

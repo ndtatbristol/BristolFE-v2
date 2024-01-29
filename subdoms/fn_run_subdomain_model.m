@@ -28,18 +28,17 @@ for d = options.doms_to_run
 
         %Get the corresponding indices into the main results data
         %(mn_res_i) as well as the corresponding domain nodes / DoFs
-        [mn_res_i, dm_res_nds_i] = fn_dm_to_mn(mn_bdry_nds_i, dm_bdry_nds_i, main.res.trans{t}.dsp_nds);
-
+        [mn_res_i, dm_res_nds_i] = fn_dm_to_mn(mn_bdry_nds_i, dm_bdry_nds_i, main.res.mon_nds);
         %Get the displacements at the boudary from the main model as well
         %as DoF and layer indices
         bdry_dsps = main.res.trans{t}.dsps(mn_res_i, :);
-        bdry_dfs = main.res.trans{t}.dsp_dfs(mn_res_i);
+        bdry_dfs = main.res.mon_dfs(mn_res_i);
         bdry_lyrs = main.doms{d}.mod.bdry_lyrs(dm_res_nds_i);
 
         gl_i = fn_gl_ind_for_nd_and_dof(...
             main.res.mats.gl_lookup, ...
-            main.res.trans{t}.dsp_nds(mn_res_i), ...
-            main.res.trans{t}.dsp_dfs(mn_res_i));
+            main.res.mon_nds(mn_res_i), ...
+            main.res.mon_dfs(mn_res_i));
 
         %Get relevant sub matrices
         K_sub = main.res.mats.K(gl_i, gl_i);
@@ -75,18 +74,20 @@ for d = options.doms_to_run
 
     %Parse the history results (these are not saved, just used to calcualte
     %the received signals in the main model
+    mn_all_nds_dfs = [main.res.mon_nds, main.res.mon_dfs];
+
     for si = 1:numel(options.tx_trans)
         t = options.tx_trans(si);
-        bdry_dsps = res{si}.dsps;
+
+        %Convert to forces
         [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
-            K_sub, C_sub, M_sub, time_step, bdry_dsps, bdry_lyrs, 'out');
+             K_sub, C_sub, M_sub, time_step, res{si}.dsps, bdry_lyrs, 'out');
 
         %Loop over receivers
         for r = options.rx_trans
             %Main nodes and DoFs associated with forcing points
-            mn_nds_i = main.doms{d}.mod.main_nd_i(res{t}.dsp_nds(frce_set));
-            mn_bdry_nds_dfs = [mn_nds_i, res{t}.dsp_dfs(frce_set)];
-            mn_all_nds_dfs = [main.res.trans{r}.dsp_nds, main.res.trans{r}.dsp_dfs];
+            mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
+            mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
             
             %Convolve with relevant receiver transfer function
             i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');

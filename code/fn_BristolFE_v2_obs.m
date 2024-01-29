@@ -45,50 +45,34 @@ for s = 1:numel(steps)
         %Explicit dynamic analysis - (1) sort out inputs
         t = steps{s}.load.time;
         if isfield(steps{s}.load, 'frcs')
-            [frc_gi, ~, ~, valid_appl_frcs] = fn_nds_and_dfs_to_gi(steps{s}.load.frc_nds, steps{s}.load.frc_dfs, mats.gl_lookup);
+            [frc_gi, ~, ~, valid] = fn_nds_and_dfs_to_gi(steps{s}.load.frc_nds, steps{s}.load.frc_dfs, mats.gl_lookup);
             frcs = steps{s}.load.frcs;
             if size(frcs, 1) > 1
-                frcs = frcs(valid_appl_frcs, :);
+                frcs = frcs(valid, :);
             end
         else
             frc_gi = [];
             frcs = [];
         end
         if isfield(steps{s}.load, 'dsps')
-            %[dsp_gi, res{s}.frc_nds, res{s}.frc_dfs, res{s}.valid_appl_dsps] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
-            [dsp_gi, ~, ~, res{s}.valid_appl_dsps] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
+            [dsp_gi, res{s}.frc_nds, res{s}.frc_dfs, valid] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
             dsps = steps{s}.load.dsps;
             if size(dsps,1) > 1
-                dsps = dsps(res{s}.valid_appl_dsps, :);
+                dsps = dsps(valid, :);
             end
         else
             dsp_gi = [];
             dsps = [];
         end
         if isfield(steps{s}.mon, 'nds')
-            % [hist_gi, res{s}.dsp_nds, res{s}.dsp_dfs, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.nds, steps{s}.mon.dfs, mats.gl_lookup);
-            [hist_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.nds, steps{s}.mon.dfs, mats.gl_lookup);
+            [hist_gi, res{s}.dsp_nds, res{s}.dsp_dfs] = fn_nds_and_dfs_to_gi(steps{s}.mon.nds, steps{s}.mon.dfs, mats.gl_lookup);
         else
             hist_gi = [];
         end
 
         %Explicit dynamic analysis - (2) run it!
-        [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
-            fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, ...
-            frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_present);
+        [res{s}.dsps, fld, res{s}.frcs, res{s}.fld_time] = fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_present);
         
-        %Parse the monitored history outputs
-        if isfield(steps{s}.mon, 'nds')
-            res{s}.dsps(res{s}.valid_mon_dsps, :) = mon_dsps;
-        else
-            res{s}.dsps = [];
-        end
-        if isfield(steps{s}.load, 'dsps')
-            res{s}.frcs(res{s}.valid_appl_dsps, :) = mon_frcs;
-        else
-            res{s}.frcs = [];
-        end
-
         %Convert field output to element values
         if ~isempty(fld)
             res{s}.fld = fn_get_plot_vals_v3(fld, mats.gl_lookup, mod.els, mats.M);

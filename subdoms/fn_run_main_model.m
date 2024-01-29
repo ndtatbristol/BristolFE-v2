@@ -84,10 +84,14 @@ end
 [res, main.res.mats] = fn_BristolFE_v2(main.mod, main.matls, steps, options);
 
 %Parse pristine field results to main.res{tx}.trans{t}
+valid_mon_dsps = res{1}.valid_mon_dsps; %same for all steps
 for e = 1:numel(main.trans)
     %copy field results
     main.res.trans{e} = res{e};
+    main.res.trans{e}.dsps = main.res.trans{e}.dsps(valid_mon_dsps,:)
 end
+main.res.mon_nds = mon_nds(valid_mon_dsps);
+main.res.mon_dfs = mon_dfs(valid_mon_dsps);
 
 %Parse the pristine FMC results
 [main.res.fmc.tx, main.res.fmc.rx] =meshgrid(options.tx_trans, options.rx_trans);
@@ -100,9 +104,10 @@ main.res.fmc.time_data = zeros(numel(main.inp.time), numel(main.res.fmc.rx(:)));
 for t = options.tx_trans
     for r = options.rx_trans
         k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
-        i = ismember(res{t}.dsp_nds, mon_nds(main.trans{r}.nds));
+        % i = ismember(res{t}.dsp_nds, mon_nds(main.trans{r}.nds));
+        i = ismember(steps{t}.mon.nds, mon_nds(main.trans{r}.nds));
 
-        gl_nds = res{t}.dsp_nds(i);
+        % gl_nds = res{t}.dsp_nds(i);
         tmp = res{t}.dsps(i, :);
         if isfield(main.trans{r}, 'wt')
             tmp = main.trans{r}.wt(:)' * tmp;

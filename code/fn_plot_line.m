@@ -1,5 +1,5 @@
 function fn_plot_line(pts, col, varargin)
-if ~isempty(varargin)
+if isempty(varargin)
     closed = 0;
 else
     closed = varargin{1};
