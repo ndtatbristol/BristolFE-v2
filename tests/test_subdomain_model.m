@@ -17,9 +17,9 @@ do_defect_cases = 0;
 do_validation = 0;
 do_direct_injection = 0;
 
-els_per_wavelength = 7; %4 for testing, 6+ for real thing
+els_per_wavelength = 8; %4 for testing, 6+ for real thing
 safety_factor = 3;
-time_pts = 2000;
+time_pts = 1000;
 
 fe_options.field_output_every_n_frames = 20;
 fe_options.movie_mode = 1;
@@ -155,7 +155,7 @@ end
 a = linspace(0,2*pi,361)';
 for d = 1:numel(subdomain)
     inner_bdry = subdomain(d).cent + subdomain(d).inner_rad * [cos(a), sin(a)];
-    main.doms{d} = fn_create_subdomain(main.mod, inner_bdry, abs_bdry_thickness);
+    main.doms{d} = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdry_thickness);
     % main.doms{d}.scats{1}.mod = main.doms{d}.mod;
 end
 
@@ -195,7 +195,7 @@ main = fn_run_subdomain_model(main, fe_options);
 figure;
 anim_options.repeat_n_times = 1;
 anim_options.db_range = [-40, 0];
-anim_options.pause_value = 0.25;
+anim_options.pause_value = 0.001;
 h_patches = fn_show_geometry_with_subdomains(main, anim_options);
 fn_run_subdomain_animations(main, h_patches, anim_options);
 

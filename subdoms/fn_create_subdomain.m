@@ -1,7 +1,9 @@
-function dom = fn_create_subdomain(mod, inner_bdry, abs_layer_thick, varargin)
+function dom = fn_create_subdomain(mod, matls, inner_bdry, abs_layer_thick, varargin)
 
 %Last optional argument allows the start of the absorbing region to be
 %specified. If not specified it will be penultimate boundary layer.
+
+interface_el_name = 'ASI2D2';
 
 dom.mod.nds = mod.nds;
 dom.mod.els = mod.els;
@@ -35,6 +37,14 @@ for i = 1:4
         end
     end
 end
+
+%Delete original interface elements and then regenerate later in this 
+%function - this is to avoid potential instability at edge of domain where 
+%original interface elements copied from main mesh may now be on free edges
+els_in_use = ~strcmp(dom.mod.el_typ_i, interface_el_name);
+[dom.mod.main_el_i, ~, dom.mod.els, dom.mod.el_mat_i, dom.mod.el_abs_i, dom.mod.el_typ_i] = fn_remove_unused_elements(els_in_use, dom.mod.els, dom.mod.el_mat_i, dom.mod.el_abs_i, dom.mod.el_typ_i);
+
+
 %Add the absorbing layers by working out from centre of region
 [~, cand_els] = fn_elements_in_region2(dom.mod.nds, dom.mod.els, abs_layer_start_bdry);
 dom.mod.el_abs_i(cand_els) = fn_dist_point_to_bdry_2D(fn_calc_element_centres(dom.mod.nds, dom.mod.els(cand_els, :)), abs_layer_start_bdry) / abs_layer_thick;
@@ -44,6 +54,8 @@ els_in_use(dom.mod.el_abs_i > 1) = 0;
 [dom.mod.main_el_i, ~, dom.mod.els, dom.mod.el_mat_i, dom.mod.el_abs_i, dom.mod.el_typ_i] = fn_remove_unused_elements(els_in_use, dom.mod.els, dom.mod.el_mat_i, dom.mod.el_abs_i, dom.mod.el_typ_i);
 [dom.mod.nds, dom.mod.els, dom.mod.main_nd_i, ~] = fn_remove_unused_nodes(dom.mod.nds, dom.mod.els);
 dom.mod.bdry_lyrs = dom.mod.bdry_lyrs(dom.mod.main_nd_i);
+
+dom.mod = fn_add_fluid_solid_interface_els(dom.mod, matls);
 
 free_ed = fn_find_free_edges(dom.mod.els);
 
