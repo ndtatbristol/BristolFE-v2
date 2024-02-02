@@ -1,37 +1,36 @@
-function main = fn_run_subdomain_model(main, options)
+function main = fn_run_subdomain_model(main, fe_options)
 default_options.doms_to_run = [];
 default_options.tx_trans = []; %by default all transducers are transmitters
 default_options.rx_trans = []; %by default all transducers are also receivers
 default_options.field_output_every_n_frames = inf;
 default_options.use_gpu_if_available = 1;
 default_options.dof_to_use = [];
-options = fn_set_default_fields(options, default_options);
-if isempty(options.tx_trans)
-    options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
+fe_options = fn_set_default_fields(fe_options, default_options);
+if isempty(fe_options.tx_trans)
+    fe_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 end
-if isempty(options.rx_trans)
-    options.rx_trans = 1:numel(main.trans); %by default all transducers are transmitters
+if isempty(fe_options.rx_trans)
+    fe_options.rx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 end
-if isempty(options.doms_to_run)
-    options.doms_to_run = 1:numel(main.doms);
+if isempty(fe_options.doms_to_run)
+    fe_options.doms_to_run = 1:numel(main.doms);
 end
 
 time_step = main.inp.time(2) - main.inp.time(1);
 
 %Run main model if not already run
 if ~isfield(main, 'res')
-    main = fn_run_GL_whole_model(main, options);
+    main = fn_run_GL_whole_model(main, fe_options);
 end
 
 %Run the scatterer models
-for d = options.doms_to_run
-    main.doms{d}.res.fmc.time_data = zeros(size(main.res.fmc.time_data));
-    for si = 1:numel(options.tx_trans) %si is step counter for FE, one step per transmitting transducer
-        t = options.tx_trans(si);
+for d = fe_options.doms_to_run
+    for si = 1:numel(fe_options.tx_trans) %si is step counter for FE, one step per transmitting transducer
+        t = fe_options.tx_trans(si);
 
         %Figure out which nodes in domain we need displacements for
         dm_bdry_nds_i = find(main.doms{d}.mod.bdry_lyrs > 0);
-        
+
         %And the equivalent main nodes
         mn_bdry_nds_i = main.doms{d}.mod.main_nd_i(dm_bdry_nds_i);
 
@@ -67,47 +66,52 @@ for d = options.doms_to_run
         %Create the load step - monitoring
         steps{si}.mon.nds = dm_res_nds_i;
         steps{si}.mon.dfs = bdry_dfs;
-        steps{si}.mon.field_output_every_n_frames = options.field_output_every_n_frames;
+        steps{si}.mon.field_output_every_n_frames = fe_options.field_output_every_n_frames;
 
     end
 
     %Run the model for all incident fields
-    res = fn_BristolFE_v2(main.doms{d}.mod, main.matls, steps, options);
+    res = fn_BristolFE_v2(main.doms{d}.mod, main.matls, steps, fe_options);
 
-    %Parse the field results
-    for si = 1:numel(options.tx_trans)
-        t = options.tx_trans(si);
-        main.doms{d}.res.trans{t}.fld = res{si}.fld;
-        main.doms{d}.res.trans{t}.fld_time = res{si}.fld_time;
-    end
+    if ~isinf(fe_options.field_output_every_n_frames)
+        %Parse the field results if doing animations
+        for si = 1:numel(fe_options.tx_trans)
+            t = fe_options.tx_trans(si);
+            main.doms{d}.res.trans{t}.fld = res{si}.fld;
+            main.doms{d}.res.trans{t}.fld_time = res{si}.fld_time;
+        end
+        main.doms{d}.res.fmc = [];
+    else
+        %Parse the history results (these are not saved, just used to calcualte
+        %the received signals in the main model
+        mn_all_nds_dfs = [main.res.mon_nds, main.res.mon_dfs];
 
-    %Parse the history results (these are not saved, just used to calcualte
-    %the received signals in the main model
-    mn_all_nds_dfs = [main.res.mon_nds, main.res.mon_dfs];
+        for si = 1:numel(fe_options.tx_trans)
+            t = fe_options.tx_trans(si);
 
-    for si = 1:numel(options.tx_trans)
-        t = options.tx_trans(si);
+            %Convert to forces
+            [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
+                K_sub, C_sub, M_sub, time_step, res{si}.dsps, bdry_lyrs, 'out');
 
-        %Convert to forces
-        [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
-             K_sub, C_sub, M_sub, time_step, res{si}.dsps, bdry_lyrs, 'out');
+            %Loop over receivers
+            for r = fe_options.rx_trans
+                %Main nodes and DoFs associated with forcing points
+                mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
+                mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
 
-        %Loop over receivers
-        for r = options.rx_trans
-            %Main nodes and DoFs associated with forcing points
-            mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
-            mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
-            
-            %Convolve with relevant receiver transfer function
-            i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
-            tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2));
-            
-            %Stick it in the FMC data for this domain
-            k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
-            main.doms{d}.res.fmc.time_data(:, k) = tmp(:);
+                %Convolve with relevant receiver transfer function
+                i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
+                tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2));
+
+                %Stick it in the FMC data for this domain
+                k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
+                if ~isfield(main.doms{d}, 'res')
+                    main.doms{d}.res.fmc.time_data = zeros(size(main.res.fmc.time_data));
+                end
+                main.doms{d}.res.fmc.time_data(:, k) = tmp(:);
+            end
         end
     end
-    
 end
 
 end

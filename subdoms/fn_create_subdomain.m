@@ -61,6 +61,8 @@ free_ed = fn_find_free_edges(dom.mod.els);
 
 dom.mod.outer_bndry_pts = [dom.mod.nds(free_ed, 1), dom.mod.nds(free_ed, 2)];
 dom.mod.inner_bndry_pts = inner_bdry;
+
+dom.mod = rmfield(dom.mod, 'main_el_i');%not needed anywhere?
 end
 
 %--------------------------------------------------------------------------
@@ -161,6 +163,9 @@ if strcmp(exit_cond, 'edge_node')
 end
 % figure; plot(nds(:,1), nds(:,2), 'y.'); hold on; plot([inner_bdry(:,1); inner_bdry(1,1)], [inner_bdry(:,2); inner_bdry(1,2)], 'r:'); xlim([min(inner_bdry(:,1)) - 1e-3, max(inner_bdry(:,1)) + 1e-3]); ylim([min(inner_bdry(:,2))- 1e-3, max(inner_bdry(:,2))+ 1e-3]);
 bdry_nds = bdry_nds(1:min(find(bdry_nds == 0)) - 1);
+
+
+
 end
 
 function [bdry_nds, exit_cond] = fn_track_bdry(nds, els, inner_bdry, bdry_nds, bdry_start_pt, bdry_dir, start_node, free_ed_nds)

@@ -40,8 +40,9 @@ main.inp.time = [0:time_pts - 1] * time_step;
 main.inp.sig = fn_gaussian_pulse(main.inp.time, fe_options.centre_freq, fe_options.number_of_cycles);
 
 %Main model is always run with impulse excitation unless in movie mode
-if fe_options.movie_mode
+if ~isinf(fe_options.field_output_every_n_frames)
     inp = main.inp.sig;
+    warning('Movie mode - toneburst input will be used to generate nice animations but time-domain outputs will be suppressed')
 else
     inp = zeros(size(main.inp.time));
     inp(1) = 1;
@@ -83,38 +84,49 @@ end
 %transmitter or receiver anyway
 [res, main.res.mats] = fn_BristolFE_v2(main.mod, main.matls, steps, fe_options);
 
-%Parse pristine field results to main.res{tx}.trans{t}
+%Parse the essential data (the displacements at the subdomain boundaries)
+%which is needed regardless of whether looking at field animations or FMC
 valid_mon_dsps = res{1}.valid_mon_dsps; %same for all steps
-for e = 1:numel(main.trans)
-    %copy field results
-    main.res.trans{e} = res{e};
-    main.res.trans{e}.dsps = main.res.trans{e}.dsps(valid_mon_dsps,:);
-end
 main.res.mon_nds = mon_nds(valid_mon_dsps);
 main.res.mon_dfs = mon_dfs(valid_mon_dsps);
+for e = 1:numel(main.trans)
+    %copy field results
+    % main.res.trans{e} = res{e};
+    main.res.trans{e}.dsps = res{e}.dsps(valid_mon_dsps,:);
+end
 
-%Parse the pristine FMC results
-[main.res.fmc.tx, main.res.fmc.rx] =meshgrid(fe_options.tx_trans, fe_options.rx_trans);
-main.res.fmc.tx = main.res.fmc.tx(:)';
-main.res.fmc.rx = main.res.fmc.rx(:)';
-main.res.fmc.time_data = zeros(numel(main.inp.time), numel(main.res.fmc.rx(:)));
+if ~isinf(fe_options.field_output_every_n_frames)
+    %Parse pristine field results to main.res{tx}.trans{t}
+    for e = 1:numel(main.trans)
+        %copy field results
+        main.res.trans{e}.fld = res{e}.fld;
+        main.res.trans{e}.fld_time = res{e}.fld_time;
+    end
+    main.res.fmc = [];
+else
+    %Parse the pristine FMC results
+    [main.res.fmc.tx, main.res.fmc.rx] =meshgrid(fe_options.tx_trans, fe_options.rx_trans);
+    main.res.fmc.tx = main.res.fmc.tx(:)';
+    main.res.fmc.rx = main.res.fmc.rx(:)';
+    main.res.fmc.time_data = zeros(numel(main.inp.time), numel(main.res.fmc.rx(:)));
 
-%TODO Need to add array details in usual format here
+    %TODO Need to add array details in usual format here
 
-for t = fe_options.tx_trans
-    for r = fe_options.rx_trans
-        k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
-        % i = ismember(res{t}.dsp_nds, mon_nds(main.trans{r}.nds));
-        i = ismember(steps{t}.mon.nds, main.trans{r}.nds);
+    for t = fe_options.tx_trans
+        for r = fe_options.rx_trans
+            k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
+            % i = ismember(res{t}.dsp_nds, mon_nds(main.trans{r}.nds));
+            i = ismember(steps{t}.mon.nds, main.trans{r}.nds);
 
-        % gl_nds = res{t}.dsp_nds(i);
-        tmp = res{t}.dsps(i, :);
-        if isfield(main.trans{r}, 'wt')
-            tmp = main.trans{r}.wt(:)' * tmp;
-        else
-            tmp = sum(tmp);
+            % gl_nds = res{t}.dsp_nds(i);
+            tmp = res{t}.dsps(i, :);
+            if isfield(main.trans{r}, 'wt')
+                tmp = main.trans{r}.wt(:)' * tmp;
+            else
+                tmp = sum(tmp);
+            end
+            main.res.fmc.time_data(:, k) = tmp(:);
         end
-        main.res.fmc.time_data(:, k) = tmp(:);
     end
 end
 
