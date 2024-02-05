@@ -16,12 +16,12 @@ do_defect_cases = 1;
 % do_validation = 0;
 % do_direct_injection = 0;
 
-els_per_wavelength = 6; %4 for testing, 6+ for real thing
+els_per_wavelength = 4; %4 for testing, 6+ for real thing
 safety_factor = 1.5;
 time_pts = 2000;
 
 fe_options.field_output_every_n_frames = 20;
-fe_options.field_output_every_n_frames = inf;
+% fe_options.field_output_every_n_frames = inf;
 fe_options.movie_mode = 1;
 fe_options.dof_to_use = [1,2,4];
 
