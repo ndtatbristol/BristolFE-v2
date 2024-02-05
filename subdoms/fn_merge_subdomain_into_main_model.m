@@ -3,6 +3,20 @@ function mod = fn_merge_subdomain_into_main_model(mainmod, submod, matls)
 %Copy the mainmod mesh to the output
 mod = mainmod;
 
+%METHOD TOOD
+%   Define bdry_nd_i = find(submod.bdry_lyrs == 1)
+%   Create tmp_bdry_pts = submod.nds(bdry_nd_i, :)
+%   Order tmp_bdry_pts so that they are in order to describe closed polygon
+%   (should be function for this buried in the subdomain creation function)
+%   Use this as the boundary below to delete elements from the two models
+%   to guarantee consistency
+%   Increase node reference in submod.els by n = size(mod.nds, 1)
+%   Append remaining submod.nds to main model
+%   Replace all references to original submod node numbers on boundary to
+%   main_nd_i - this will take a but of thought to not mess up!
+
+
+
 %main.doms{1}.mod.main_nd_i
 %Remove elements outside inner boundary in submod
 [not_in_use, ~] = fn_elements_in_region(submod, submod.inner_bndry_pts);
