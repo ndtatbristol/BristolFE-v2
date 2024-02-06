@@ -29,7 +29,9 @@ end
 if isempty(anim_options.norm_val)
     anim_options.norm_val = 0;
     for f = 1:numel(fld)
-        anim_options.norm_val = max(max(abs(fld{f}(:)), [], 'all'), anim_options.norm_val);
+        if ~isempty(fld{f})
+            anim_options.norm_val = max(max(abs(fld{f}(:)), [], 'all'), anim_options.norm_val);
+        end
     end
 end
 

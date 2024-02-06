@@ -13,14 +13,14 @@ anim_options = fn_set_default_fields(anim_options, default_options);
 
 for t = 1:numel(main.res.trans)
     for d = 1:numel(main.doms)
-        fld(1) = {main.res.trans{t}.fld};
+        fld{1} = main.res.trans{t}.fld;
         if isfield(main.doms{d}, 'res') && ...
                 isfield(main.doms{d}.res, 'trans') && ...
                 t <= numel(main.doms{d}.res.trans) && ...
                 isfield(main.doms{d}.res.trans{t}, 'fld')
-            fld(d + 1) = {main.doms{d}.res.trans{t}.fld};
+            fld{d + 1} = main.doms{d}.res.trans{t}.fld;
         else
-            fld(d + 1) = {};
+            fld{d + 1} = [];
         end
     end
     fn_run_animation(h_patches, fld, anim_options);

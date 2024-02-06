@@ -20,8 +20,8 @@ step = [(max_dom_size(1) + sep), (max_dom_size(2) + sep)] * scale;
 p = 1;
 display_options.scale = 1;
 display_options.offset = -min(main.mod.nds);
-display_options.node_sets_to_plot = [];
 h_patches{p} = fn_show_geometry(main.mod, main.matls, display_options);
+display_options.node_sets_to_plot = [];
 hold on;
 offset = [0, 0];
 for d = 1:no_doms

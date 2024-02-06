@@ -5,7 +5,6 @@ default_options.time_step = main.mod.max_safe_time_step;
 default_options.field_output_every_n_frames = inf;
 default_options.use_gpu_if_available = 1;
 default_options.dof_to_use = [1:4];
-default_options.movie_mode = 0; %when this is one, the input signal is set to be the toneburst rather than an impulse, so movies look nice. Other results will be wrong!!!
 default_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 default_options.rx_trans = 1:numel(main.trans); %by default all transducers are also receivers
 fe_options = fn_set_default_fields(fe_options, default_options);
