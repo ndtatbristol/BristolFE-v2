@@ -4,10 +4,12 @@ default_options.number_of_cycles = 5;
 default_options.time_step = main.mod.max_safe_time_step;
 default_options.field_output_every_n_frames = inf;
 default_options.use_gpu_if_available = 1;
-default_options.dof_to_use = [1:4];
+default_options.dof_to_use = [];
 default_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 default_options.rx_trans = 1:numel(main.trans); %by default all transducers are also receivers
 fe_options = fn_set_default_fields(fe_options, default_options);
+
+fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(unique(main.mod.el_typ_i), fe_options.dof_to_use);
 
 %Runs everything necessary
 time_step = fe_options.time_step;
@@ -51,7 +53,7 @@ end
 %main model
 mon_nds = zeros(size(main.mod.nds, 1), 1);
 for d = 1:numel(main.doms)
-    mon_nds(main.doms{d}.mod.main_nd_i) = 1;
+    mon_nds(main.doms{d}.mod.main_nd_i(main.doms{d}.mod.bdry_lyrs > 0)) = 1;
 end
 
 %Also need to include the transducer nodes so we can obtain the pristine
@@ -86,6 +88,7 @@ end
 %Parse the essential data (the displacements at the subdomain boundaries)
 %which is needed regardless of whether looking at field animations or FMC
 valid_mon_dsps = res{1}.valid_mon_dsps; %same for all steps
+main.res.dsp_gi = res{1}.dsp_gi;
 main.res.mon_nds = mon_nds(valid_mon_dsps);
 main.res.mon_dfs = mon_dfs(valid_mon_dsps);
 for e = 1:numel(main.trans)

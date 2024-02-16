@@ -52,8 +52,9 @@ els_in_use = ones(size(dom.mod.els, 1), 1);
 els_in_use(dom.mod.el_abs_i > 1) = 0;
 
 [dom.mod.main_el_i, ~, dom.mod.els, dom.mod.el_mat_i, dom.mod.el_abs_i, dom.mod.el_typ_i] = fn_remove_unused_elements(els_in_use, dom.mod.els, dom.mod.el_mat_i, dom.mod.el_abs_i, dom.mod.el_typ_i);
-[dom.mod.nds, dom.mod.els, dom.mod.main_nd_i, ~] = fn_remove_unused_nodes(dom.mod.nds, dom.mod.els);
-dom.mod.bdry_lyrs = dom.mod.bdry_lyrs(dom.mod.main_nd_i);
+[dom.mod.nds, dom.mod.els, old_nds, ~] = fn_remove_unused_nodes(dom.mod.nds, dom.mod.els);
+dom.mod.main_nd_i = old_nds;
+dom.mod.bdry_lyrs = dom.mod.bdry_lyrs(old_nds);
 
 dom.mod = fn_add_fluid_solid_interface_els(dom.mod, matls);
 

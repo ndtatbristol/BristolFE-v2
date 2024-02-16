@@ -125,6 +125,9 @@ for e = 1:no_array_els
     main.trans{e}.dfs = ones(size(main.trans{e}.nds)) * 4;
 end
 
+main.mod.nds = main.mod.nds + (rand(size(main.mod.nds)) - 0.5) * el_size / 5;
+
+
 %Add subdomains
 a = linspace(0,2*pi,361)';
 for d = 1:numel(subdomain)

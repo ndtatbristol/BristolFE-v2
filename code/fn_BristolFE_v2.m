@@ -13,7 +13,7 @@ function [res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %   mats - global matrices for model
 %--------------------------------------------------------------------------
 
-default_options.use_gpu_if_present = 1;
+default_options.use_gpu_if_available = 1;
 default_options.field_output_every_n_frames = inf;
 
 fe_options = fn_set_default_fields(fe_options, default_options);
@@ -75,18 +75,22 @@ for s = 1:numel(steps)
         %Explicit dynamic analysis - (2) run it!
         [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
             fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, ...
-            frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_present);
+            frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available);
         
         %Parse the monitored history outputs
         if isfield(steps{s}.mon, 'nds')
             res{s}.dsps(res{s}.valid_mon_dsps, :) = mon_dsps;
+            res{s}.dsp_gi = hist_gi; %note that this is NOT dsp_gi above as that is indices of applied displacements (confusing!)
         else
             res{s}.dsps = [];
+            res{s}.dsp_gi = [];
         end
         if isfield(steps{s}.load, 'dsps')
             res{s}.frcs(res{s}.valid_appl_dsps, :) = mon_frcs;
+            res{s}.frc_gi = frc_gi;
         else
             res{s}.frcs = [];
+            res{s}.frc_gi = [];
         end
 
         %Convert field output to element values

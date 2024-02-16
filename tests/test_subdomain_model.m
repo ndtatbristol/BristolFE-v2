@@ -12,7 +12,7 @@ fname = [];
 
 show_geom_only = 0;
 
-do_defect_cases = 1;
+do_defect_cases = 0;
 % do_validation = 0;
 % do_direct_injection = 0;
 
@@ -23,7 +23,7 @@ time_pts = 2000;
 fe_options.field_output_every_n_frames = 20;
 % fe_options.field_output_every_n_frames = inf;
 fe_options.movie_mode = 1;
-fe_options.dof_to_use = [1,2,4];
+fe_options.dof_to_use = [];%[1,2,4];
 
 subdoms_to_do = {'A','B','C'};
 subdoms_to_do = {'A'};

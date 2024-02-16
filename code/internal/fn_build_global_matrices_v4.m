@@ -84,23 +84,11 @@ end
 fprintf('Global matrices (v4)');
 t1 = clock;
 
-%find unique types
-un_typs = unique(el_typ_i);
-
-%work out max_dof needed in global matrix and max dof per element
-un_df = [];
-max_el_df = 0;
-for t = 1:numel(un_typs)
-    fn_el_mats = str2func(['fn_el_', un_typs{t}]);
-    [~, ~, ~, ~, loc_df] = fn_el_mats([], [], [], fe_options.dof_to_use);
-    un_df = [un_df, loc_df];
-    max_el_df = max(max_el_df, numel(loc_df));
-end
-un_df = unique(un_df);
-df_per_nd = numel(un_df);
-max_df = max(un_df);
-% gl_lookup = [1: size(nds,1) * df_per_nd];
-% gl_lookup = reshape(gl_lookup, [size(nds,1), df_per_nd]);
+%find unique element types, max DoF per element, and actual DoFs in use
+unique_typs = unique(el_typ_i);
+[unique_df, max_el_df] = fn_find_dof_in_use_and_max_dof_per_el(unique_typs, fe_options.dof_to_use);
+% df_per_nd = numel(un_df);
+max_df = max(unique_df);
 
 %Prepare global matrices
 no_nds = size(nds, 1);
@@ -114,9 +102,9 @@ Cvec = zeros(total_el_dfs, 1);
 
 %Loop over unique element types
 i1 = 1;
-for t = 1:numel(un_typs)
-    fn_el_mats = str2func(['fn_el_', un_typs{t}]);
-    el_i = strcmp(el_typ_i, un_typs{t});
+for t = 1:numel(unique_typs)
+    fn_el_mats = str2func(['fn_el_', unique_typs{t}]);
+    el_i = strcmp(el_typ_i, unique_typs{t});
 
     %Find unique element matls for this type
     un_mat = unique(el_mat_i(el_i));
@@ -184,7 +172,7 @@ for t = 1:numel(un_typs)
         Kvec(i1:i2) = el_K(:);
         Mvec(i1:i2) = el_M(:);
         Cvec(i1:i2) = el_C(:);
-        i1 = i2+1;
+        i1 = i2 + 1;
     end
 end
 
