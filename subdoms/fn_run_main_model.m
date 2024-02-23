@@ -1,4 +1,5 @@
 function main = fn_run_main_model(main, time_pts, fe_options)
+default_options.doms_to_run = []; %only relevant in validation mode
 default_options.centre_freq = main.mod.design_centre_freq;
 default_options.number_of_cycles = 5;
 default_options.time_step = main.mod.max_safe_time_step;
@@ -9,6 +10,9 @@ default_options.tx_trans = 1:numel(main.trans); %by default all transducers are 
 default_options.rx_trans = 1:numel(main.trans); %by default all transducers are also receivers
 default_options.validation_mode = 0;
 fe_options = fn_set_default_fields(fe_options, default_options);
+if isempty(fe_options.doms_to_run)
+    fe_options.doms_to_run = 1:numel(main.doms);
+end
 
 fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(unique(main.mod.el_typ_i), fe_options.dof_to_use);
 
@@ -50,11 +54,13 @@ else
     inp(1) = 1;
 end
 
-%For each domain, we need to know which nds/dfs we need to monitor at in
-%main model
-mon_nds = zeros(size(main.mod.nds, 1), 1);
-for d = 1:numel(main.doms)
-    mon_nds(main.doms{d}.mod.main_nd_i(main.doms{d}.mod.bdry_lyrs > 0)) = 1;
+if ~fe_options.validation_mode
+    %For each domain, we need to know which nds/dfs we need to monitor at in
+    %main model
+    mon_nds = zeros(size(main.mod.nds, 1), 1);
+    for d = 1:numel(main.doms)
+        mon_nds(main.doms{d}.mod.main_nd_i(main.doms{d}.mod.bdry_lyrs > 0)) = 1;
+    end
 end
 
 %Also need to include the transducer nodes so we can obtain the pristine
@@ -82,57 +88,65 @@ for e = 1:numel(main.trans)
         mon_nds, mon_dfs, fe_options.field_output_every_n_frames);
 end
 
-%Actually run the model for each transducer (need boundary data whether
-%transmitter or receiver anyway
-[res, main.res.mats] = fn_BristolFE_v2(main.mod, main.matls, steps, fe_options);
+if ~fe_options.validation_mode
+    %NORMAL MODE
 
-%Parse the essential data (the displacements at the subdomain boundaries)
-%which is needed regardless of whether looking at field animations or FMC
-valid_mon_dsps = res{1}.valid_mon_dsps; %same for all steps
-main.res.dsp_gi = res{1}.dsp_gi;
-main.res.mon_nds = mon_nds(valid_mon_dsps);
-main.res.mon_dfs = mon_dfs(valid_mon_dsps);
-for e = 1:numel(main.trans)
-    %copy field results
-    % main.res.trans{e} = res{e};
-    main.res.trans{e}.dsps = res{e}.dsps(valid_mon_dsps,:);
-end
+    %Run the model for each transducer (need boundary data whether
+    %transmitter or receiver anyway
+    [res, main.res.mats] = fn_BristolFE_v2(main.mod, main.matls, steps, fe_options);
 
-if ~isinf(fe_options.field_output_every_n_frames)
-    %Parse pristine field results to main.res{tx}.trans{t}
+    %Parse the essential data (the displacements at the subdomain boundaries)
+    %which is needed regardless of whether looking at field animations or FMC
+    valid_mon_dsps = res{1}.valid_mon_dsps; %same for all steps
+    main.res.dsp_gi = res{1}.dsp_gi;
+    main.res.mon_nds = mon_nds(valid_mon_dsps);
+    main.res.mon_dfs = mon_dfs(valid_mon_dsps);
     for e = 1:numel(main.trans)
         %copy field results
-        main.res.trans{e}.fld = res{e}.fld;
-        main.res.trans{e}.fld_time = res{e}.fld_time;
+        % main.res.trans{e} = res{e};
+        main.res.trans{e}.dsps = res{e}.dsps(valid_mon_dsps,:);
     end
-    main.res.fmc = [];
-else
-    %Parse the pristine FMC results
-    [main.res.fmc.tx, main.res.fmc.rx] =meshgrid(fe_options.tx_trans, fe_options.rx_trans);
-    main.res.fmc.tx = main.res.fmc.tx(:)';
-    main.res.fmc.rx = main.res.fmc.rx(:)';
-    main.res.fmc.time_data = zeros(numel(main.inp.time), numel(main.res.fmc.rx(:)));
 
-    %TODO Need to add array details in usual format here
+    if ~isinf(fe_options.field_output_every_n_frames)
+        %Parse pristine field results to main.res{tx}.trans{t}
+        for e = 1:numel(main.trans)
+            %copy field results
+            main.res.trans{e}.fld = res{e}.fld;
+            main.res.trans{e}.fld_time = res{e}.fld_time;
+        end
+        main.res.fmc = [];
+    else
+        %Parse the pristine FMC results
+        [main.res.fmc.tx, main.res.fmc.rx] =meshgrid(fe_options.tx_trans, fe_options.rx_trans);
+        main.res.fmc.tx = main.res.fmc.tx(:)';
+        main.res.fmc.rx = main.res.fmc.rx(:)';
+        main.res.fmc.time_data = zeros(numel(main.inp.time), numel(main.res.fmc.rx(:)));
 
-    for t = fe_options.tx_trans
-        for r = fe_options.rx_trans
-            k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
-            % i = ismember(res{t}.dsp_nds, mon_nds(main.trans{r}.nds));
-            i = ismember(steps{t}.mon.nds, main.trans{r}.nds);
+        %TODO Need to add array details in usual format here
 
-            % gl_nds = res{t}.dsp_nds(i);
-            tmp = res{t}.dsps(i, :);
-            if isfield(main.trans{r}, 'wt')
-                tmp = main.trans{r}.wt(:)' * tmp;
-            else
-                tmp = sum(tmp);
+        for t = fe_options.tx_trans
+            for r = fe_options.rx_trans
+                k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
+                % i = ismember(res{t}.dsp_nds, mon_nds(main.trans{r}.nds));
+                i = ismember(steps{t}.mon.nds, main.trans{r}.nds);
+
+                % gl_nds = res{t}.dsp_nds(i);
+                tmp = res{t}.dsps(i, :);
+                if isfield(main.trans{r}, 'wt')
+                    tmp = main.trans{r}.wt(:)' * tmp;
+                else
+                    tmp = sum(tmp);
+                end
+                main.res.fmc.time_data(:, k) = tmp(:);
             end
-            main.res.fmc.time_data(:, k) = tmp(:);
         end
     end
+else
+    %VALIDATION MODE
+    for d = 1:numel(fe_options.doms_to_run)
+        
+    end
 end
-
 
 end
 

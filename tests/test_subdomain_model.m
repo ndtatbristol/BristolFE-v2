@@ -47,6 +47,7 @@ if do_defect_cases
     scat_pts = cent + r .* [cos(a), sin(a)];
     scat_matl = 3;
     main.doms{d}.mod = fn_add_scatterer(main.doms{d}.mod, main.matls, scat_pts, scat_matl);
+    main.doms{d}.mod.int_el_i = fn_elements_in_region(main.doms{d}.mod, main.doms{d}.mod.inner_bndry_pts);
 end
 
 if show_geom_only
