@@ -12,7 +12,7 @@ fname = [];
 
 show_geom_only = 0;
 
-do_defect_cases = 0;
+do_defect_cases = 1;
 % do_validation = 0;
 % do_direct_injection = 0;
 

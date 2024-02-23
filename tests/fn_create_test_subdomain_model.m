@@ -132,7 +132,7 @@ main.mod.nds = main.mod.nds + (rand(size(main.mod.nds)) - 0.5) * el_size / 5;
 a = linspace(0,2*pi,361)';
 for d = 1:numel(subdomain)
     inner_bdry = subdomain(d).cent + subdomain(d).inner_rad * [cos(a), sin(a)];
-    main.doms{d} = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdry_thickness);
+    main.doms{d}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdry_thickness);
 end
 
 end

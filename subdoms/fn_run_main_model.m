@@ -7,6 +7,7 @@ default_options.use_gpu_if_available = 1;
 default_options.dof_to_use = [];
 default_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
 default_options.rx_trans = 1:numel(main.trans); %by default all transducers are also receivers
+default_options.validation_mode = 0;
 fe_options = fn_set_default_fields(fe_options, default_options);
 
 fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(unique(main.mod.el_typ_i), fe_options.dof_to_use);
