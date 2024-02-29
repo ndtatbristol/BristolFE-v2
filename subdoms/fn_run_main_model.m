@@ -56,7 +56,7 @@ end
 
 if ~fe_options.validation_mode
     %For each domain, we need to know which nds/dfs we need to monitor at in
-    %main model
+    %main model. Not needed in validation mode
     mon_nds = zeros(size(main.mod.nds, 1), 1);
     for d = 1:numel(main.doms)
         mon_nds(main.doms{d}.mod.main_nd_i(main.doms{d}.mod.bdry_lyrs > 0)) = 1;
@@ -143,8 +143,47 @@ if ~fe_options.validation_mode
     end
 else
     %VALIDATION MODE
-    for d = 1:numel(fe_options.doms_to_run)
-        
+    for d = fe_options.doms_to_run
+        main.doms{d}.val_mod = fn_insert_subdomain_model_into_main(main.mod, main.doms{d}.mod);
+
+        %Run the model for each transducer (need boundary data whether
+        %transmitter or receiver anyway
+        [res, main.res.mats] = fn_BristolFE_v2(main.doms{d}.val_mod, main.matls, steps, fe_options);
+    
+        if ~isinf(fe_options.field_output_every_n_frames)
+            %Parse pristine field results to main.val.trans{t}
+            for e = 1:numel(main.trans)
+                %copy field results
+                main.doms{d}.val.trans{e}.fld = res{e}.fld;
+                main.doms{d}.val.trans{e}.fld_time = res{e}.fld_time;
+            end
+            main.doms{d}.val.fmc = [];
+        else
+            %Parse the pristine FMC results
+            [main.doms{d}.val.fmc.tx, main.doms{d}.val.fmc.rx] =meshgrid(fe_options.tx_trans, fe_options.rx_trans);
+            main.doms{d}.val.fmc.tx = main.doms{d}.val.fmc.tx(:)';
+            main.doms{d}.val.fmc.rx = main.doms{d}.val.fmc.rx(:)';
+            main.doms{d}.val.fmc.time_data = zeros(numel(main.inp.time), numel(main.doms{d}.val.fmc.rx(:)));
+    
+            %TODO Need to add array details in usual format here
+    
+            for t = fe_options.tx_trans
+                for r = fe_options.rx_trans
+                    k = find(t == main.doms{d}.val.fmc.tx & r == main.doms{d}.val.fmc.rx);
+                    % i = ismember(res{t}.dsp_nds, mon_nds(main.trans{r}.nds));
+                    i = ismember(steps{t}.mon.nds, main.trans{r}.nds);
+    
+                    % gl_nds = res{t}.dsp_nds(i);
+                    tmp = res{t}.dsps(i, :);
+                    if isfield(main.trans{r}, 'wt')
+                        tmp = main.trans{r}.wt(:)' * tmp;
+                    else
+                        tmp = sum(tmp);
+                    end
+                    main.doms{d}.val.fmc.time_data(:, k) = tmp(:);
+                end
+            end
+        end
     end
 end
 

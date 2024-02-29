@@ -1,7 +1,7 @@
 clear;
 close all;
 restoredefaultpath;
-addpath('../code');
+addpath(genpath('../code'));
 
 %This is the same as coupled_fluid_solid_example except now with absorbing
 %boundary layer on 3 sides of the model

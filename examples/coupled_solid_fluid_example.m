@@ -1,7 +1,7 @@
 clear;
 close all;
 restoredefaultpath;
-addpath('../code');
+addpath(genpath('../code'));
 
 %This also shows how to export field output animation to an mp4 file for
 %inclusion in presentations etc. To do this, anim_options.mp4_out is set to 

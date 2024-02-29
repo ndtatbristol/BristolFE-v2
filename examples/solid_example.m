@@ -1,7 +1,7 @@
 clear;
 close all;
 restoredefaultpath;
-addpath('../code');
+addpath(genpath('../code'));
 
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM

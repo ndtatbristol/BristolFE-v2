@@ -13,20 +13,19 @@ fname = [];
 show_geom_only = 0;
 
 do_defect_cases = 1;
-% do_validation = 0;
+do_validation = 1;
 % do_direct_injection = 0;
 
 els_per_wavelength = 4; %4 for testing, 6+ for real thing
-safety_factor = 1.5;
-time_pts = 2000;
+safety_factor = 3;
+time_pts = 8000;
 
-fe_options.field_output_every_n_frames = 20;
-% fe_options.field_output_every_n_frames = inf;
-fe_options.movie_mode = 1;
+fe_options.field_output_every_n_frames = 40;
+fe_options.field_output_every_n_frames = inf;
 fe_options.dof_to_use = [];%[1,2,4];
 
 subdoms_to_do = {'A','B','C'};
-subdoms_to_do = {'A'};
+% subdoms_to_do = {'A','C'};
 
 %--------------------------------------------------------------------------
 main = fn_create_test_subdomain_model(els_per_wavelength, safety_factor, subdoms_to_do);
@@ -39,15 +38,20 @@ main = fn_create_test_subdomain_model(els_per_wavelength, safety_factor, subdoms
 % main.doms{d}.mod.bdry_lyrs = main.doms{d}.mod.bdry_lyrs(new_nd_i);
 
 if do_defect_cases
-    d = 1;
-    a = linspace(0,2*pi,12)';
-    cent = mean(main.doms{1}.mod.inner_bndry_pts);
-    rmax = mean(sqrt(sum((main.doms{1}.mod.inner_bndry_pts - cent) .^ 2,2)));
-    r = (rand(numel(a), 1) + 1) / 2 * rmax * 0.8;
-    scat_pts = cent + r .* [cos(a), sin(a)];
-    scat_matl = 3;
-    main.doms{d}.mod = fn_add_scatterer(main.doms{d}.mod, main.matls, scat_pts, scat_matl);
-    main.doms{d}.mod.int_el_i = fn_elements_in_region(main.doms{d}.mod, main.doms{d}.mod.inner_bndry_pts);
+    for d = 1:numel(main.doms)
+        a = linspace(0,2*pi,12)';
+        cent = mean(main.doms{d}.mod.inner_bndry_pts);
+        rmax = mean(sqrt(sum((main.doms{d}.mod.inner_bndry_pts - cent) .^ 2,2)));
+        r = (rand(numel(a), 1) + 1) / 2 * rmax * 0.8;
+        scat_pts = cent + r .* [cos(a), sin(a)];
+        if strcmp(subdoms_to_do{d}, 'B')
+            scat_matl = 0;
+        else
+            scat_matl = 3;
+        end
+        main.doms{d}.mod = fn_add_scatterer(main.doms{d}.mod, main.matls, scat_pts, scat_matl);
+        main.doms{d}.mod.int_el_i = fn_elements_in_region(main.doms{d}.mod, main.doms{d}.mod.inner_bndry_pts);
+    end
 end
 
 if show_geom_only
@@ -98,6 +102,34 @@ else
     end
 
 end
+
+
+if do_validation
+    fe_options.validation_mode = 1;
+    main = fn_run_main_model(main, time_pts, fe_options);
+    if ~isinf(fe_options.field_output_every_n_frames)
+        %Animate results if requested, and that's the end
+        figure;
+        anim_options.repeat_n_times = 1;
+        anim_options.db_range = [-40, 0];
+        anim_options.pause_value = 0.001;
+        h_patches = fn_show_geometry(main.doms{1}.val_mod, main.matls, anim_options);
+        fn_run_animation(h_patches, main.doms{1}.val.trans{1}.fld, anim_options);
+    else
+    %View the time domain data
+        figure;
+        for d = 1:numel(main.doms)
+            subplot(numel(main.doms), 1, d);
+            [fmc, val_fmc] = fn_extract_FMC_from_subdomain(main, d);
+            semilogy(fmc.time, abs(sum(fmc.time_data,2)));
+            hold on;
+            semilogy(val_fmc.time, abs(sum(val_fmc.time_data,2)));
+            semilogy(val_fmc.time, abs(sum(fmc.time_data,2) - sum(val_fmc.time_data,2)));
+        end
+    end
+end
+
+
 return
 
 

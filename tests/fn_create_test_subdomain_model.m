@@ -31,14 +31,14 @@ trans_angd = 20.6; %angle from horisontal: 20.6 for S and 10.8 to L at 45
 %Materials
 steel_matl_i = 1;
 main.matls(steel_matl_i).rho = 8900;
-main.matls(steel_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
+main.matls(steel_matl_i).D = fn_isotropic_stiffness_matrix(210e9, 0.3);
 main.matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]);
 main.matls(steel_matl_i).name = 'Steel';
 main.matls(steel_matl_i).el_typ = 'CPE3';
 
 gold_matl_i = 2;
 main.matls(gold_matl_i).rho = 7000;
-main.matls(gold_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3);
+main.matls(gold_matl_i).D = fn_isotropic_stiffness_matrix(210e9, 0.3);
 main.matls(gold_matl_i).col = [0.8672, 0.9375, 0.1875];
 main.matls(gold_matl_i).name = 'Gold';
 main.matls(gold_matl_i).el_typ = 'CPE3';

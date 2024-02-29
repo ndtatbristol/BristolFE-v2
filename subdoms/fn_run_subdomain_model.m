@@ -31,7 +31,7 @@ for d = fe_options.doms_to_run
         t = fe_options.tx_trans(si);
 
         %Get the mappings between nodes etc to main domain
-        [mn_res_i, gl_i, bdry_nds, bdry_dfs, bdry_lyrs] = fn_get_main_subdomain_mappings(main.doms{1}.mod, main.res, main.res.mats.gl_lookup);
+        [mn_res_i, gl_i, bdry_nds, bdry_dfs, bdry_lyrs] = fn_get_main_subdomain_mappings(main.doms{d}.mod, main.res, main.res.mats.gl_lookup);
 
         %Get relevant sub matrices
         K_sub = main.res.mats.K(gl_i, gl_i);
