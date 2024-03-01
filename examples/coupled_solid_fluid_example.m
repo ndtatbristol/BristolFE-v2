@@ -19,7 +19,7 @@ matls(steel_matl_i).rho = 8900; %Density
 %3x3 or 6x6 stiffness matrix of material. Here it is isotropic material and
 %fn_isotropic_plane_strain_stiffness_matrix(E, v) converts Young's modulus
 %and Poisson's ratio into appropriate 3x3 matrix
-matls(steel_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3); 
+matls(steel_matl_i).D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
 matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]); %Colour for display
 matls(steel_matl_i).name = 'Steel';
 matls(steel_matl_i).el_typ = 'CPE3'; %CPE3 must be the element type for a solid

@@ -13,7 +13,7 @@ end
 
 main_dims = max(main.mod.nds) - min(main.mod.nds);
 sep = sqrt(sum((main_dims .^ 2))) * display_options.sep_frac;
-scale = main_dims(1) / (no_doms * max_dom_size(1) + (no_doms - 1) * sep);
+scale = min(main_dims(1) / (no_doms * max_dom_size(1) + (no_doms - 1) * sep), 1);
 step = [(max_dom_size(1) + sep), (max_dom_size(2) + sep)] * scale;
 
 %Main
@@ -32,9 +32,11 @@ for d = 1:no_doms
     display_options.offset = offset - [min(main.doms{d}.mod.nds(:,1)), max(main.doms{d}.mod.nds(:,2))] * scale;
     h_patches{p} = fn_show_geometry(main.doms{d}.mod, main.matls, display_options);
     col = display_options.dom_cols(rem(d - 1, numel(display_options.dom_cols)) + 1);
-    xy = fn_dom_coord(main.doms{d}.mod.inner_bndry_pts, display_options.scale, display_options.offset);
+    tmp = main.doms{d}.mod.inner_bndry_pts;
+    tmp = [tmp; tmp(1,:)];
+    xy = fn_dom_coord(tmp, display_options.scale, display_options.offset);
     plot(xy(:, 1), xy(:, 2), col);
-    xy = fn_main_coord(main.doms{d}.mod.inner_bndry_pts, -min(main.mod.nds));
+    xy = fn_main_coord(tmp, -min(main.mod.nds));
     plot(xy(:, 1), xy(:, 2), col);
 end
 

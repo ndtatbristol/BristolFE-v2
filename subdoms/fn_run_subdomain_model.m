@@ -61,55 +61,49 @@ for d = fe_options.doms_to_run
     %Run the model for all incident fields
     res = fn_BristolFE_v2(main.doms{d}.mod, main.matls, steps, fe_options);
 
+    %Parse the field data for movies if requested
     if ~isinf(fe_options.field_output_every_n_frames)
-        %Parse the field results if doing animations
         for si = 1:numel(fe_options.tx_trans)
             t = fe_options.tx_trans(si);
             main.doms{d}.res.trans{t}.fld = res{si}.fld;
             main.doms{d}.res.trans{t}.fld_time = res{si}.fld_time;
         end
-        main.doms{d}.res.fmc = [];
-    else
-        %Parse the history results (these are not saved, just used to calcualte
-        %the received signals in the main model
-        mn_all_nds_dfs = [main.res.mon_nds, main.res.mon_dfs];
+    end
 
-        for si = 1:numel(fe_options.tx_trans)
-            t = fe_options.tx_trans(si);
+    %Parse the history results (these are not saved, just used to calcualte
+    %the received signals in the main model)
+    mn_all_nds_dfs = [main.res.mon_nds, main.res.mon_dfs];
 
-            %Convert to forces
-            [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
-                K_sub, C_sub, M_sub, time_step, res{si}.dsps, bdry_lyrs, 'out');
+    for si = 1:numel(fe_options.tx_trans)
+        t = fe_options.tx_trans(si);
 
-            %Loop over receivers
-            for r = fe_options.rx_trans
-                %Main nodes and DoFs associated with forcing points
-                mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
-                mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
+        %Convert to forces
+        [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
+            K_sub, C_sub, M_sub, time_step, res{si}.dsps, bdry_lyrs, 'out');
 
-                %Convolve with relevant receiver transfer function
-                i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
-                tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2));
+        %Loop over receivers
+        for r = fe_options.rx_trans
+            %Main nodes and DoFs associated with forcing points
+            mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
+            mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
 
-                %Stick it in the FMC data for this domain
-                k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
-                if ~isfield(main.doms{d}, 'res')
-                    main.doms{d}.res.fmc.time_data = zeros(size(main.res.fmc.time_data));
-                end
-                main.doms{d}.res.fmc.time_data(:, k) = tmp(:);
+            %Convolve with relevant receiver transfer function
+            i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
+            tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2));
+
+            % tmp = fn_deconvolve(tmp, main.inp.sig, 2);
+
+            %Stick it in the FMC data for this domain
+            k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
+            if ~isfield(main.doms{d}, 'res')
+                main.doms{d}.res.fmc.time_data = zeros(size(main.res.fmc.time_data));
             end
+            main.doms{d}.res.fmc.time_data(:, k) = tmp(:);
         end
     end
 end
 
 end
-
-% function [mn_res_i, dm_res_nds_i] = fn_dm_to_mn(mn_bdry_nds_i, dm_bdry_nds_i, mn_res_nds_i)
-% % mn_res_i = ismember(mn_res_nds_i, mn_bdry_nds_i);
-% mn_res_i = find(ismember(mn_res_nds_i, mn_bdry_nds_i));
-% [~, j] = ismember(mn_res_nds_i(mn_res_i), mn_bdry_nds_i);
-% dm_res_nds_i = dm_bdry_nds_i(j);
-% end
 
 
 function [mn_res_i, gl_i, bdry_nds, bdry_dfs, bdry_lyrs] = fn_get_main_subdomain_mappings(dom_mod, main_res, main_gl_lookup)
@@ -123,8 +117,6 @@ nb_m = dom_mod.main_nd_i(bdry_nds);
 %Global matrix indices associated with these nodes
 G_mon = main_gl_lookup(sub2ind(size(main_gl_lookup),main_res.mon_nds,main_res.mon_dfs));
 
-
-% G_mon= main_gl_lookup(main_res.mon_nds, main_res.mon_dfs); %should store this at the time in main model run
 mn_res_i = find(ismember(main_res.mon_nds, nb_m));
 gl_i = main_res.dsp_gi(mn_res_i);
 
@@ -138,7 +130,7 @@ bdry_nds = interp1(nb_m, bdry_nds, Nb_m, 'nearest');
 bdry_lyrs = dom_mod.bdry_lyrs(bdry_nds);
 
 %Finally DoFs which are same in main and sub-domain
-bdry_dfs = Db_m; 
+bdry_dfs = Db_m;
 
 end
 

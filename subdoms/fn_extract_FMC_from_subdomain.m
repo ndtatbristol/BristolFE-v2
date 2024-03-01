@@ -7,7 +7,8 @@ if isfield(main.doms{d}, 'val') && isfield(main.doms{d}.val, 'fmc')
     val_fmc = main.res.fmc;
     val_fmc.time = main.inp.time;
     val_fmc.time_data = main.doms{d}.val.fmc.time_data;
-    val_fmc.time_data = fn_convolve(val_fmc.time_data, main.inp.sig(:), 1);
+    %Validation models are run with toneburst input anyway, so no
+    %deconvolution nesc.
 end
 
 end

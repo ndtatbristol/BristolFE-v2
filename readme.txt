@@ -7,7 +7,11 @@ To use, clone (or download and unzip) the repository and add the BristolFE-v2/co
 
 The entry-point for FE analysis is the function fn_BristolFE_v2 in the BristolFE-v2/code folder. The BristolFE-v2/code folder also contains numerous helper functions for creating meshes and displaying results.
 
-The core FE code is in various functions in the BristolFE-v2/code/private folder, which are not called directly by the user.
+The core FE code is in various functions in the BristolFE-v2/code/internal folder, which are not expected to be called directly by the user. 
+
+Make sure that the code and code/internal folders are on the Matlab path, e.g. by having:
+addpath(genpath('RELEVANT_PATH/BristolFE-v2/code'));
+at the top of any scripts that use the functions, where RELEVANT_PATH is set according to wherever you put the folder.
 
 Some example scripts are provided in the BristolFE-v2/examples. Most likely you will start with one of these and modify it according to your requirements.
 

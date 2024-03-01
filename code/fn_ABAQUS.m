@@ -1,14 +1,14 @@
 function [res, mats] = fn_ABAQUS(mod, matls, steps, fe_options)
-default_options.abaqus_jobname = 'test2';
+default_options.abaqus_jobname = 'test';
 default_options.abaqus_exe = 'C:\SIMULIA\Commands\abaqus';
-default_options.abaqus_working_folder = 'C:\temp\abaqus2';
+default_options.abaqus_working_folder = 'C:\temp\abaqus';
 fe_options = fn_set_default_fields(fe_options, default_options);
 
 if exist(fe_options.abaqus_working_folder) ~= 7
     mkdir(fe_options.abaqus_working_folder);
 end
 
-fn_create_abaqus_input_file(mod, matls, steps, [fe_options.abaqus_working_folder, filesep, fe_options.abaqus_jobname, '.inp']);
+fn_create_abaqus_input_file(mod, matls, steps, [fe_options.abaqus_working_folder, filesep, fe_options.abaqus_jobname, '.inp'], fe_options);
 cdir = pwd;
 cd(fe_options.abaqus_working_folder)
 cmd = [fe_options.abaqus_exe, ' job=', fe_options.abaqus_jobname, ' interactive'];
@@ -17,7 +17,7 @@ cmd = [fe_options.abaqus_exe, ' job=', fe_options.abaqus_jobname, ' interactive'
 system(cmd);
 end
 
-function fn_create_abaqus_input_file(mod, matls, steps, fname)
+function fn_create_abaqus_input_file(mod, matls, steps, fname, fe_options)
 fid = fopen(fname, 'wt');
 fprintf(fid, '*HEADING\nFile created in Matlab\n');
 
@@ -81,11 +81,15 @@ for s = 1:numel(steps)
         end
         fprintf(fid, '%i, %i, %e\n', steps{s}.load.frc_nds(n), steps{s}.load.frc_dfs(n), 1.0);
     end
-
+    fprintf(fid, '*NSET, NSET=NSET_S%i\n', s);
+    %TODO - list monitoring nodes here
     %This works to here - file actually executres in ABAQUS and results in
     %OBD file look plausible. Need to add outputs to text file here so they
     %can be read back into Matlab. Acoustic = DoF 8 in Abaqus
-% *OUTPUT, FIELD, NUMBER INTERVAL=10
+    % fprintf(fid, '*OUTPUT, FIELD, NUMBER INTERVAL=%i\n', fe_options.field_output_every_n_frames);
+    fprintf(fid, '*OUTPUT, HISTORY\n', fe_options.field_output_every_n_frames);
+    fprintf(fid, '*NODE OUTPUT, NSET=NSET_S%i\n', s);
+    fprintf(fid, 'U\n');
 % *NODE OUTPUT, NSET=NSET_PDW_ALL
 % U
     fprintf(fid, '*END STEP\n');

@@ -19,7 +19,11 @@ interface_el_name = 'ASI2D2';
 dm_mod.nds = mn_mod.nds;
 dm_mod.els = mn_mod.els;
 dm_mod.el_mat_i = mn_mod.el_mat_i;
-dm_mod.el_abs_i = mn_mod.el_abs_i;
+if isfield(mn_mod, 'el_abs_i')
+    dm_mod.el_abs_i = mn_mod.el_abs_i;
+else
+    dm_mod.el_abs_i = zeros(size(mn_mod.el_mat_i));
+end
 dm_mod.el_typ_i = mn_mod.el_typ_i;
 dm_mod.bdry_lyrs = zeros(size(mn_mod.nds, 1), 1);
 dm_mod.el_abs_i = zeros(size(mn_mod.els, 1), 1);

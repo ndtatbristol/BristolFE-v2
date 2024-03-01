@@ -2,7 +2,15 @@ function mod = fn_insert_subdomain_model_into_main(mn_mod, dm_mod)%, matls)
 %Can delete matls argument after debugging - used for plotting only
 % figure;h = fn_show_geometry(dm_mod, matls, []);
 
+if isfield(mn_mod, 'el_abs_i')
+    mn_mod.el_abs_i = mn_mod.el_abs_i;
+else
+    mn_mod.el_abs_i = zeros(size(mn_mod.el_mat_i));
+end
+
 mod = mn_mod;
+
+
 
 %Remove the elements from model that are inside region
 els_in_use = ones(size(mod.els, 1), 1);
