@@ -21,9 +21,9 @@ end
 time_step = main.inp.time(2) - main.inp.time(1);
 
 %Run main model if not already run
-if ~isfield(main, 'res')
-    main = fn_run_GL_whole_model(main, fe_options);
-end
+% if ~isfield(main, 'res')
+%     main = fn_run_GL_whole_model(main, fe_options);
+% end
 
 %Run the scatterer models
 for d = fe_options.doms_to_run
@@ -40,6 +40,10 @@ for d = fe_options.doms_to_run
 
         %Get relevant incident displacements
         bdry_dsps = main.res.trans{t}.dsps(mn_res_i, :);
+
+        %Sub-domain models are run with true input signal rather than
+        %impulse response, which is what is recorded
+        bdry_dsps = fn_convolve(bdry_dsps, main.inp.sig, 2);
 
         %Convert to forces
         [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
@@ -70,7 +74,7 @@ for d = fe_options.doms_to_run
         end
     end
 
-    %Parse the history results (these are not saved, just used to calcualte
+    %Parse the history results (these are not saved, just used to calculate
     %the received signals in the main model)
     mn_all_nds_dfs = [main.res.mon_nds, main.res.mon_dfs];
 

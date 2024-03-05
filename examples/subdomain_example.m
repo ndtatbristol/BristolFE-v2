@@ -60,7 +60,7 @@ safety_factor = 3;
 %For animations, set the following to a non-infinite value
 time_pts = 8000;
 fe_options.field_output_every_n_frames = inf;
-% fe_options.field_output_every_n_frames = 40;
+fe_options.field_output_every_n_frames = 40;
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 
@@ -104,7 +104,7 @@ h_patch = fn_show_geometry_with_subdomains(main, display_options);
 %--------------------------------------------------------------------------
 
 %Run main model
-main = fn_run_main_model(main, time_pts, fe_options);
+main = fn_run_main_model_v2(main, time_pts, fe_options);
 
 %Run sub-domain model
 main = fn_run_subdomain_model(main, fe_options);
@@ -121,7 +121,7 @@ end
 
 %Run validation model
 fe_options.validation_mode = 1;
-main = fn_run_main_model(main, time_pts, fe_options);
+main = fn_run_main_model_v2(main, time_pts, fe_options);
 
 %Animate validation results if requested
 if ~isinf(fe_options.field_output_every_n_frames)
