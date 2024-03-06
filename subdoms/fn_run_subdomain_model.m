@@ -91,18 +91,17 @@ for d = fe_options.doms_to_run
             mn_nds_i = main.doms{d}.mod.main_nd_i(steps{t}.mon.nds(frce_set));
             mn_bdry_nds_dfs = [mn_nds_i, steps{t}.mon.dfs(frce_set)];
 
+            %USE THE PARSE TO FMC DATA unction here instead!
             %Convolve with relevant receiver transfer function
             i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
             tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2));
 
-            % tmp = fn_deconvolve(tmp, main.inp.sig, 2);
-
             %Stick it in the FMC data for this domain
             k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
             if ~isfield(main.doms{d}, 'res')
-                main.doms{d}.res.fmc.time_data = zeros(size(main.res.fmc.time_data));
+                main.doms{d}.res.fmc = main.res.fmc;
             end
-            main.doms{d}.res.fmc.time_data(:, k) = tmp(:);
+            main.doms{d}.res.fmc.time_data(:, k) = main.doms{d}.res.fmc.time_data(:, k) + tmp(:);
         end
     end
 end

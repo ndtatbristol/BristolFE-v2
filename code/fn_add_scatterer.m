@@ -25,4 +25,7 @@ end
 %Add interface elements if needed
 mod = fn_add_fluid_solid_interface_els(mod, matls);
 
+%Set flag on which elements are within domain
+mod.int_el_i = fn_elements_in_region(mod, mod.inner_bndry_pts);
+
 end

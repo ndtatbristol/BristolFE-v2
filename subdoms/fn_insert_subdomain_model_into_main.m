@@ -1,4 +1,4 @@
-function mod = fn_insert_subdomain_model_into_main(mn_mod, dm_mod)%, matls)
+function mod = fn_insert_subdomain_model_into_main(mn_mod, dm_mod, matls)
 %Can delete matls argument after debugging - used for plotting only
 % figure;h = fn_show_geometry(dm_mod, matls, []);
 
@@ -12,7 +12,7 @@ mod = mn_mod;
 
 
 
-%Remove the elements from model that are inside region
+%Remove the elements from mmain odel that are inside region
 els_in_use = ones(size(mod.els, 1), 1);
 els_in_use(dm_mod.main_int_el_i) = 0;
 [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(els_in_use, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);

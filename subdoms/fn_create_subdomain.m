@@ -79,7 +79,7 @@ dm_mod = fn_add_fluid_solid_interface_els(dm_mod, matls);
 free_ed = fn_find_free_edges(dm_mod.els);
 
 dm_mod.outer_bndry_pts = [dm_mod.nds(free_ed, 1), dm_mod.nds(free_ed, 2)];
-dm_mod.int_el_i = fn_elements_in_region(dm_mod, inner_bdry);
+dm_mod.int_el_i = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
 
 end
 
