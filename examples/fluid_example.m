@@ -19,7 +19,8 @@ model_size = 10e-3;
 bdry_pts = [
     0, 0 
     model_size, 0 
-    model_size, model_size];
+    model_size, model_size
+    0, model_size * 0.8];
 
 %Define a line along which sources will be placed to excite waves
 src_end_pts = [
@@ -35,6 +36,10 @@ max_time = 40e-6;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
+
+%The default option is field_output_every_n_frames = inf, which means there
+%is no field output. Set to a finite value to get a field output.
+fe_options.field_output_every_n_frames = 10;
 
 %--------------------------------------------------------------------------
 
@@ -71,9 +76,6 @@ h_patch = fn_show_geometry(mod, matls, display_options);
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-%The default option is field_output_every_n_frames = inf, which means there
-%is no field output. Set to a finite value to get a field output.
-fe_options.field_output_every_n_frames = 10;
 res = fn_BristolFE_v2(mod, matls, steps, fe_options);
 
 %--------------------------------------------------------------------------

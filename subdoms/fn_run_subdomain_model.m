@@ -20,13 +20,9 @@ end
 
 time_step = main.inp.time(2) - main.inp.time(1);
 
-%Run main model if not already run
-% if ~isfield(main, 'res')
-%     main = fn_run_GL_whole_model(main, fe_options);
-% end
-
 %Run the scatterer models
 for d = fe_options.doms_to_run
+    main.doms{d} = fn_clear_fields(main.doms{d}, 'res', 1, 0);
     for si = 1:numel(fe_options.tx_trans) %si is step counter for FE, one step per transmitting transducer
         t = fe_options.tx_trans(si);
 
@@ -63,7 +59,13 @@ for d = fe_options.doms_to_run
     end
 
     %Run the model for all incident fields
-    res = fn_BristolFE_v2(main.doms{d}.mod, main.matls, steps, fe_options);
+    % res = fn_BristolFE_v2(main.doms{d}.mod, main.matls, steps, fe_options);
+    res = fn_FE_entry_point(main.doms{d}.mod, main.matls, steps, fe_options);
+
+    %Copy the pristine FMC data into this domain's results - scatterered
+    %results will be added on to this
+    main.doms{d}.res.fmc = main.res.fmc;
+
 
     %Parse the field data for movies if requested
     if ~isinf(fe_options.field_output_every_n_frames)
@@ -96,11 +98,9 @@ for d = fe_options.doms_to_run
             i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
             tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2));
 
-            %Stick it in the FMC data for this domain
+            %Add it onto the pristine FMC data already copied into this
+            %domain's results
             k = find(t == main.res.fmc.tx & r == main.res.fmc.rx);
-            if ~isfield(main.doms{d}, 'res')
-                main.doms{d}.res.fmc = main.res.fmc;
-            end
             main.doms{d}.res.fmc.time_data(:, k) = main.doms{d}.res.fmc.time_data(:, k) + tmp(:);
         end
     end

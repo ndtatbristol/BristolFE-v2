@@ -16,6 +16,11 @@ function dm_mod = fn_create_subdomain(mn_mod, matls, inner_bdry, abs_layer_thick
 
 interface_el_name = 'ASI2D2';
 
+if ~isfield(mn_mod, 'el_typ_i')
+    mn_mod.el_typ_i = {matls(mn_mod.el_mat_i).el_typ};
+    mn_mod.el_typ_i = mn_mod.el_typ_i(:);
+end
+
 dm_mod.nds = mn_mod.nds;
 dm_mod.els = mn_mod.els;
 dm_mod.el_mat_i = mn_mod.el_mat_i;

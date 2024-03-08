@@ -9,6 +9,8 @@ The entry-point for FE analysis is the function fn_BristolFE_v2 in the BristolFE
 
 The core FE code is in various functions in the BristolFE-v2/code/internal folder, which are not expected to be called directly by the user. 
 
+Special wrapper functions for sub-domain modelling are in the BristolFE-v2/subdoms folder. See the two example files for examples of how to use.
+
 Make sure that the code and code/internal folders are on the Matlab path, e.g. by having:
 addpath(genpath('RELEVANT_PATH/BristolFE-v2/code'));
 at the top of any scripts that use the functions, where RELEVANT_PATH is set according to wherever you put the folder.
@@ -36,8 +38,19 @@ In BristolFE-v2/examples you will find the following scripts which provide simpl
     2. solid_example.m - simulate longitudinal and shear waves in a solid domain
     3. coupled_solid_fluid_example.m - simulate waves in a fluid domain coupled to a solid one, showing mode conversions at the interface
     4. absorbing_layer_example.m - same as 3 but this time with an absorbing layer on 3 sides of the domain to prevent reflections
+    5. subdomain_example.m - simulate waves in a pristine domain, add a scatterer to a subdomain and combine results to obtain overall response
+    6. subdomain_array_example.m - same as 5 but simulating FMC data from an array transducer
 
+UPDATES SINCE PREVIOUS RELEASE
+==============================
 
+The 'private' directory under 'code' has been renamed 'internal' otherwise its contents could not be accessed by functions in subdoms folder due to the way Matlab interprets private folders.
+Functions to generate 3x3 isotropic plane stress and plane strain stiffness matrices removed and replaced single function to generate 6x6 isotropic stiffness matrix. Following Abaqus element naming convention, CPE3 elements are plane strain anyway so this is handled at the element level. At some point an equivalent plane stress element may be added but this is of less relevance for ultrasonic wave models anyway.
+
+KNOWN ISSUES
+============
+
+The fluid-solid coupling sort of works but there is a potential instability issue. Practically this can be fixed by reducing the time step (increasing the safety factor) but sometimes the computational cost becomes prohibitive. Hopefully this will be fixed at some point.
 
 
 

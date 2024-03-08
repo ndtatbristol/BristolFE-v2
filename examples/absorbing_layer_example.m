@@ -65,6 +65,10 @@ max_time = 20e-6;
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
 
+%The default option is field_output_every_n_frames = inf, which means there
+%is no field output. Set to a finite value to get a field output.
+fe_options.field_output_every_n_frames = 10;
+
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 
@@ -113,7 +117,6 @@ h_patch = fn_show_geometry(mod, matls, display_options);
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-fe_options.field_output_every_n_frames = 10;
 res = fn_BristolFE_v2(mod, matls, steps, fe_options);
 
 %--------------------------------------------------------------------------

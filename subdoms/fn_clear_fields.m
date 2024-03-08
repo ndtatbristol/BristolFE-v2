@@ -1,12 +1,10 @@
-function main = fn_clear_fields(main, fieldname, clear_main, clear_scats)
+function main = fn_clear_fields(main, fieldname, clear_main, clear_doms)
 if clear_main
     main = fn_safe_clear(main, fieldname);
 end
-if clear_scats
+if clear_doms
     for d = 1:numel(main.doms)
-        for s = 1:numel(main.doms{d}.scats)
-            main.doms{d}.scats{s} = fn_safe_clear(main.doms{d}.scats{s}, fieldname);
-        end
+        main.doms{d} = fn_safe_clear(main.doms{d}, fieldname);
     end
 end
 end
