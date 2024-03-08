@@ -56,6 +56,14 @@ element_node3d = node_numbers(3:2:end, 1:end-1);
 
 %Final m x 2 matrix of x and y coordinates for each node
 mod.nds = [node_x_positions(:), node_y_positions(:)];
+
+%Find nearest node to origin and shift mesh to that it is on origin -
+%useful for any code that relies on element rows being in specific places
+%to avoid unnecessary staircasing
+% i = fn_find_node_at_point(mod.nds, [0.0, 0.0], inf);
+% mod.nds = mod.nds - mod.nds(i,:);
+
+
 %Final n x 3 matrix of 3 node numbers for each element
 mod.els = [
     element_node1a(:), element_node2a(:), element_node3a(:)

@@ -1,7 +1,7 @@
 clear;
 close all;
 restoredefaultpath;
-addpath('../code');
+addpath(genpath('../code'));
 
 %This is the same as coupled_fluid_solid_example except now with absorbing
 %boundary layer on 3 sides of the model
@@ -15,7 +15,7 @@ matls(steel_matl_i).rho = 8900; %Density
 %3x3 or 6x6 stiffness matrix of material. Here it is isotropic material and
 %fn_isotropic_plane_strain_stiffness_matrix(E, v) converts Young's modulus
 %and Poisson's ratio into appropriate 3x3 matrix
-matls(steel_matl_i).D = fn_isotropic_plane_strain_stiffness_matrix(210e9, 0.3); 
+matls(steel_matl_i).D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
 matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]); %Colour for display
 matls(steel_matl_i).name = 'Steel';
 matls(steel_matl_i).el_typ = 'CPE3'; %CPE3 must be the element type for a solid
@@ -65,6 +65,10 @@ max_time = 20e-6;
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
 
+%The default option is field_output_every_n_frames = inf, which means there
+%is no field output. Set to a finite value to get a field output.
+fe_options.field_output_every_n_frames = 10;
+
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 
@@ -113,7 +117,6 @@ h_patch = fn_show_geometry(mod, matls, display_options);
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-fe_options.field_output_every_n_frames = 10;
 res = fn_BristolFE_v2(mod, matls, steps, fe_options);
 
 %--------------------------------------------------------------------------

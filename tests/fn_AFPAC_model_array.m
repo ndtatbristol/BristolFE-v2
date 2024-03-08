@@ -33,7 +33,7 @@ main.mod.el_size = min_vel / centre_freq / els_per_wavelength;
 main.mod.max_safe_time_step = main.mod.el_size / max_vel / safety_factor;
 
 %Background mesh
-[main.mod.nds, main.mod.els] = fn_isometric_structured_mesh(bounding_nds, main.mod.el_size);
+main.mod = fn_isometric_structured_mesh(model_corners, main.mod.el_size);
 main.mod.el_abs_i = zeros(size(main.mod.els, 1), 1);
 
 %First make them all matl 1

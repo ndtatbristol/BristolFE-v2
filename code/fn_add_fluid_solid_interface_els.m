@@ -48,6 +48,8 @@ for i = 1:no_int_els
     end
 end
 
+% ed = fliplr(ed);
+
 %Add the new interface elements to the model
 mod.els = [mod.els; [ed, zeros(no_int_els, size(mod.els, 2)- size(ed,2))]];
 mod.el_typ_i = [mod.el_typ_i; repmat({interface_el_name}, [no_int_els, 1])];

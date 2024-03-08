@@ -102,21 +102,26 @@ if use_gpu
 	u_dot_previous = gpuArray(u_dot_previous);
     u_dot_dot_previous = gpuArray(u_dot_dot_previous);
     f = gpuArray(f);
-    if ~isempty(forcing_indices)
-        forcing_functions = gpuArray(forcing_functions);
-        forcing_indices = gpuArray(forcing_indices);
-    end
-    if ~isempty(disp_indices)
-        disp_indices = gpuArray(disp_indices);
-        force_output = gpuArray(force_output);
-    end
-	if ~isempty(history_indices)
-		history_indices = gpuArray(history_indices);
-		history_output = gpuArray(history_output);
-    end
-	if ~isinf(field_output_every_n_frames)
-		field_output = gpuArray(field_output);
-	end
+    %Commenting out following ones as they seem to make things slower
+    % if ~isempty(forcing_indices)
+    %     forcing_functions = gpuArray(forcing_functions);
+    %     forcing_indices = gpuArray(forcing_indices);
+    % end
+    % if ~isempty(disp_indices)
+    %     disp_indices = gpuArray(disp_indices);
+    %     force_output = gpuArray(force_output);
+    % end
+	% if ~isempty(history_indices)
+    %     try
+    % 		history_indices = gpuArray(history_indices);
+    % 		history_output = gpuArray(history_output);
+    %     catch
+    %         %If they don't fit on GPU, keep them on CPU
+    %     end
+    % end
+	% if ~isinf(field_output_every_n_frames)
+	% 	field_output = gpuArray(field_output);
+	% end
 end
 
 %Main time marching loop

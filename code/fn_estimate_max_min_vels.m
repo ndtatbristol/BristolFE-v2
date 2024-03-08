@@ -20,6 +20,10 @@ for i = 1:numel(matls)
         v(j,1) = sqrt(min(s) / rho);
         v(j,2) = sqrt(max(s) / rho);
         j = j + 1;
+        % s = s(abs(s) > 0);
+        % v(j,1) = sqrt(min(s) / rho);
+        % v(j,2) = sqrt(max(s) / rho);
+        % j = j + 1;
     end
 end
 mn = min(v(:,1));

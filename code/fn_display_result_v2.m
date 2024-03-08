@@ -31,7 +31,7 @@ default_options.el_mat_i = ones(size(els, 1), 1);
 default_options.el_abs_i = zeros(size(els, 1), 1);
 default_options.show_abs = 1;
 default_options.matl_cols = [];
-default_options.interface_el_col = [];
+default_options.interface_el_col = [0,0,1];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 display_options = fn_set_default_fields(display_options, default_options);
@@ -49,11 +49,11 @@ display_options.el_mat_i(display_options.el_mat_i == 0) = 1; %needed to prevent 
 base_cdata = permute(display_options.matl_cols(display_options.el_mat_i, :), [1, 3, 2]);
 h = patch('Faces', els, 'Vertices', nds, 'CData', base_cdata, 'FaceColor', 'flat');
 
-if display_options.interface_el_col
+if ~isempty(display_options.interface_el_col)
     [i, ~] = find(els == 0 | isnan(els));
     x = [nds(els(i, 1), 1), nds(els(i, 2), 1)]';
     y = [nds(els(i, 1), 2), nds(els(i, 2), 2)]';
-    plot(x, y, display_options.interface_el_col);
+    plot(x, y, 'Color', display_options.interface_el_col);
 end
 
 if display_options.show_abs
