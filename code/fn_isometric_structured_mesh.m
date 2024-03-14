@@ -72,9 +72,13 @@ mod.els = [
     element_node1d(:), element_node2d(:), element_node3d(:)
     ];
 
+%Store element centres in mod
+mod.el_centres = fn_calc_element_centres(mod.nds, mod.els);
+
 %Now remove elements outside original boundary
 [in, out] = fn_elements_in_region(mod, bdry_pts);
 mod.els(out, :) = [];
+mod.el_centres(out, :) = [];
 
 %Tidy up by removing unused nodes
 [mod.nds, mod.els] = fn_remove_unused_nodes(mod.nds, mod.els);
