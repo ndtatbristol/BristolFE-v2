@@ -91,7 +91,7 @@ mod.el_mat_i(i) = 2;
 mod.el_typ_i(i) = {'AC2D3'};
 
 %Interface
-mod = fn_add_fluid_solid_interface_els(mod);
+mod = fn_add_fluid_solid_interface_els(mod, matls);
 
 %Transducer
 trans_angd = 0;
