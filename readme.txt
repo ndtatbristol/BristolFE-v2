@@ -40,6 +40,7 @@ In BristolFE-v2/examples you will find the following scripts which provide simpl
     4. absorbing_layer_example.m - same as 3 but this time with an absorbing layer on 3 sides of the domain to prevent reflections
     5. subdomain_example.m - simulate waves in a pristine domain, add a scatterer to a subdomain and combine results to obtain overall response
     6. subdomain_array_example.m - same as 5 but simulating FMC data from an array transducer
+    7. solid_example_angled_excitation - same as 2 but with normal or shear forcing applied on angled edge of model to illustrate how to apply force at an angle
 
 UPDATES SINCE PREVIOUS RELEASE
 ==============================
