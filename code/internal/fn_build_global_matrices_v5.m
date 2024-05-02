@@ -28,6 +28,7 @@ default_options.dof_to_use = []; %Blank uses all of available ones for all eleme
 default_options.damping_power_law = 3;
 default_options.max_damping = 3.1415e+07;
 default_options.max_stiffness_reduction = 0.01;
+default_options.diag_loading = 0;
 
 fe_options = fn_set_default_fields(fe_options, default_options);
 
@@ -100,7 +101,7 @@ Mvec = zeros(total_el_dfs, 1);
 Cvec = zeros(total_el_dfs, 1);
 
 %Loop over unique element types
-fprintf('    Global matrix builder v4 (nodes = %i, elements = %i, ', no_nds, size(els, 1));
+fprintf('    Global matrix builder v5 (nodes = %i, elements = %i, ', no_nds, size(els, 1));
 i1 = 1;
 for t = 1:numel(unique_typs)
     fn_el_mats = str2func(['fn_el_', unique_typs{t}]);
@@ -138,7 +139,7 @@ for t = 1:numel(unique_typs)
         
 
         %Get the element stiffness and mass matrices
-        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(el_i2, :), D, rho, fe_options.dof_to_use);
+        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(el_i2, :), D, rho, fe_options.dof_to_use, fe_options.diag_loading);
 
         % %convert loc_df into indices starting at 1 (necessary to avoid
         % %wasting tons of space when dealing with acoustic elements with the

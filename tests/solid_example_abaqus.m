@@ -18,7 +18,6 @@ matls(1).el_typ = 'CPE3'; %CPE3 must be the element type for a solid
 
 %Define shape of model
 model_size = 10e-3;
-model_size = 10e-3;
 bdry_pts = [
     0, 0 
     model_size, 0 
@@ -38,6 +37,10 @@ max_time = 10e-6;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
+
+fe_options.field_output_every_n_frames = 10;
+fe_options.dynamic_solver_version = 'v6';
+fe_options.global_matrix_builder_version = 'v5';
 
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
@@ -75,9 +78,8 @@ h_patch = fn_show_geometry(mod, matls, display_options);
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-fe_options.field_output_every_n_frames = 10;
-res = fn_FE_entry_point(mod, matls, steps, fe_options);
-res = fn_FE_entry_point(mod, matls, steps, fe_options, 'Abaqus');
+[res, mats] = fn_FE_entry_point(mod, matls, steps, fe_options);
+% res = fn_FE_entry_point(mod, matls, steps, fe_options, 'Abaqus');
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
@@ -89,9 +91,9 @@ plot(steps{1}.load.time, sum(res{1}.dsps));
 xlabel('Time (s)')
 
 %Animate result
-figure;
-display_options.draw_elements = 0;
-h_patch = fn_show_geometry(mod, matls, display_options);
-anim_options.repeat_n_times = 1;
-fn_run_animation(h_patch, res{1}.fld, anim_options);
+% figure;
+% display_options.draw_elements = 0;
+% h_patch = fn_show_geometry(mod, matls, display_options);
+% anim_options.repeat_n_times = 1;
+% fn_run_animation(h_patch, res{1}.fld, anim_options);
 
