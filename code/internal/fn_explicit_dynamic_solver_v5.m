@@ -128,10 +128,10 @@ end
 t1 = clock;
 ti_start = inf;
 if ~isempty(forcing_indices)
-    ti_start = min(min(find(sum(forcing_functions))), ti_start);
+    ti_start = min(min(find(sum(abs(forcing_functions)))), ti_start);
 end
 if ~isempty(disp_indices)
-    ti_start = min(min(find(sum(disp_functions))), ti_start);
+    ti_start = min(min(find(sum(abs(disp_functions)))), ti_start);
 end
 for ti = ti_start:length(time)
     %set force at forcing node equal to excitation signal at this instant
