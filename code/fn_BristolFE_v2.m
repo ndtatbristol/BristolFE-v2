@@ -18,7 +18,7 @@ default_options.field_output_every_n_frames = inf;
 default_options.global_matrix_builder_version = 'v4';
 default_options.dynamic_solver_version = 'v5';
 default_options.solver_mode = 'vel at last half time step';
-
+default_options.field_output = 'element KE';
 fe_options = fn_set_default_fields(fe_options, default_options);
 
 %Check inputs - are all mesh and material details consistent?
@@ -122,7 +122,8 @@ for s = 1:numel(steps)
 
         %Convert field output to element values
         if ~isempty(fld)
-            res{s}.fld = fn_get_plot_vals_v3(fld, mats.gl_lookup, mod.els, mats.M);
+            % res{s}.fld = fn_get_plot_vals_v3(fld, mats.gl_lookup, mod.els, mats.M);
+            res{s}.fld = fn_get_plot_vals_v4(fld, mats.gl_lookup, mod.nds, mod.els, mats.M, fe_options.field_output);
         else
             res{s}.fld = [];
         end
