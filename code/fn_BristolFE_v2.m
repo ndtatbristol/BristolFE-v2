@@ -47,6 +47,9 @@ for s = 1:numel(steps)
         if isfield(steps{s}.load, 'frcs')
             [frc_gi, ~, ~, valid_appl_frcs] = fn_nds_and_dfs_to_gi(steps{s}.load.frc_nds, steps{s}.load.frc_dfs, mats.gl_lookup);
             frcs = steps{s}.load.frcs;
+            if isfield(steps{1}.load, 'wts')
+                frcs = steps{1}.load.wts(:) * frcs;
+            end
             if size(frcs, 1) > 1
                 frcs = frcs(valid_appl_frcs, :);
             end
@@ -58,6 +61,9 @@ for s = 1:numel(steps)
             %[dsp_gi, res{s}.frc_nds, res{s}.frc_dfs, res{s}.valid_appl_dsps] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
             [dsp_gi, ~, ~, res{s}.valid_appl_dsps] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
             dsps = steps{s}.load.dsps;
+            if isfield(steps{1}.load, 'wts')
+                dsps = steps{1}.load.wts(:) * dsps;
+            end
             if size(dsps,1) > 1
                 dsps = dsps(res{s}.valid_appl_dsps, :);
             end

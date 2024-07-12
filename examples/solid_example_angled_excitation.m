@@ -33,7 +33,7 @@ src_end_pts = [
     0.3 * model_size, model_size * (1 - 0.3 * tand(angle_of_top_edge_degs))
     0.7 * model_size, model_size * (1 - 0.7 * tand(angle_of_top_edge_degs))];
 
-%src_dir = 'shear'; 
+% src_dir = 'shear'; 
 src_dir = 'normal'; 
 
 %Details of input signal
@@ -72,25 +72,20 @@ steps{1}.load.frc_dfs = [ones(size(frc_nds)); ones(size(frc_nds)) * 2];
 %applied to the two DoF at each forcing node. 
 time_step = fn_get_suitable_time_step(matls, el_size);
 steps{1}.load.time = 0: time_step:  max_time;
-frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycles);
+steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycles);
+
 %Calculate a weighting vector associated with the size of the force 
-%component to be applied at each node/DoF. At some point in the future,
-%this 'weighting' vector may be allowed as an optional part of the load
-%description to handle this scenario, but for now the whole force history
-%for each node/DoF needs to be supplied by the user, hence the Mx1
-%weighting vector is multiplied by the 1xN force history vector to get a
-%MxN matrix of weighted force histories
+%component to be applied at each node/DoF. 
 switch src_dir
     case 'normal'
-        weighting = ...
+        steps{1}.load.wts = ...
             double(steps{1}.load.frc_dfs == 1) * sind(angle_of_top_edge_degs) + ...
             double(steps{1}.load.frc_dfs == 2) * cosd(angle_of_top_edge_degs);
     case 'shear'
-        weighting = ...
+        steps{1}.load.wts = ...
             double(steps{1}.load.frc_dfs == 1) * cosd(angle_of_top_edge_degs) + ...
            -double(steps{1}.load.frc_dfs == 2) * sind(angle_of_top_edge_degs);
 end
-steps{1}.load.frcs = weighting * frcs;
 
 %Also record displacement history at same points (NB there is no reason why
 %these have to be same as forcing points)
@@ -112,10 +107,11 @@ res = fn_BristolFE_v2(mod, matls, steps, fe_options);
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
 
-%Show the history output as a function of time - here we just sum over all 
-%the nodes where displacments were recorded
+%Show the history output as a function of time - here we sum over all 
+%the nodes/DoFs where displacments were recorded with same weighting as 
+%applied forces to effectively simulate transducer in pulse-echo mode
 figure;
-plot(steps{1}.load.time, sum(res{1}.dsps));
+plot(steps{1}.load.time, steps{1}.load.wts.' * res{1}.dsps);
 xlabel('Time (s)')
 
 %Animate result
