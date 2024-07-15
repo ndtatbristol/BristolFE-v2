@@ -16,7 +16,7 @@ fprintf(fid, '%%\tnds - n_nds x n_dims matrix of nodal coordinates\n');
 fprintf(fid, '%%\tels - n_els x n_nds_per_el matrix of node indices for each elements\n');
 fprintf(fid, '%%\tD - ns x ns material stiffness matrix\n');
 fprintf(fid, '%%\trho - material density\n');
-fprintf(fid, '%%\t[tdofs_to_use = [] - optional string listing the DoFs to use, e.g. ''12''. Use [] for all]\n');
+fprintf(fid, '%%\t[dofs_to_use = [] - optional string listing the DoFs to use, e.g. ''12''. Use [] for all]\n');
 fprintf(fid, '%%OUTPUTS\n');
 fprintf(fid, '%%\tel_K, el_C, el_M - n_els x n_dfs_per_el x n_dfs_per_el 3D element stiffness and mass matrices\n');
 fprintf(fid, '%%AUTHOR\n');

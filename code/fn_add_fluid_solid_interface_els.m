@@ -9,7 +9,7 @@ else
     options = varargin{1};
 end
 default_options.interface_el_name = 'ASI2D2';
-default_options.fluid_el_names = {'AC2D3', 'AC2D3_v2'};
+default_options.fluid_el_names = {'AC2D3'};
 default_options.solid_el_names = {'CPE3'};
 options = fn_set_default_fields(options, default_options);
 

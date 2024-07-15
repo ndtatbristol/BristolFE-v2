@@ -33,7 +33,11 @@ phys_dims = 3; %do not alter!!!
 
 el_type = 'CPE3';
 el_type = 'test';
+
 %--------------------------------------------------------------------------
+%Change current folder to where this file is to ensure generated element 
+%files are in right place (i.e. one folder up);
+cd(fileparts(mfilename('fullpath'))); 
 
 %Define symbols
 nds = sym('nds_%d_%d', [no_nds, no_dims], 'real'); 
@@ -88,12 +92,15 @@ D = rand(6);
 D = D + D';
 rho = 1234.5;
 
-%Test function #1 - limited DOF, small
-[el_K, el_M, loc_nd, loc_df] = fn_el_mats(rand(10,2), randi(10,5,3), D, rho, [1,2]);
+%Test function #1 - limited DOF, just one element
+[el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats([0,0;1,0;0,1], [1,2,3], D, rho, [1,2]);
+disp(squeeze(el_K));
+disp(squeeze(el_M));
+return
 
 %Test function #1 - all DOF, big
 tic;
 n = 100000;
-[el_K2, el_M2, loc_nd2, loc_df2] = fn_el_mats(rand(n,2), randi(n,n,3), D, rho);
+[el_K2, el_C2, el_M2, loc_nd2, loc_df2] = fn_el_mats(rand(n,2), randi(n,n,3), D, rho);
 toc;
 

@@ -51,7 +51,7 @@ Functions to generate 3x3 isotropic plane stress and plane strain stiffness matr
 KNOWN ISSUES
 ============
 
-The fluid-solid coupling sort of works but there is a potential instability issue. Practically this can be fixed by reducing the time step (increasing the safety factor) but sometimes the computational cost becomes prohibitive. Hopefully this will be fixed at some point.
+The fluid-solid coupling has potential instability issues. Practically this can be fixed by reducing the time step (increasing the safety factor) but sometimes the computational cost becomes prohibitive.
 
 
 
