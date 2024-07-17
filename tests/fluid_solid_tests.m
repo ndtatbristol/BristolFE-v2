@@ -54,6 +54,7 @@ src_len = 4e-3;
 centre_freq = 5e6;
 no_cycles = 4;
 max_time = 20e-6;
+safety_factor = 1.5;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
@@ -92,7 +93,7 @@ steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * src_dir;
 %Also provide the time signal for the loading (if this is a vector, it will
 %be applied at all frc_nds/frc_dfs simultaneously; alternatively it can be a matrix
 %of different time signals for each frc_nds/frc_dfs
-time_step = fn_get_suitable_time_step(matls, el_size);
+time_step = fn_get_suitable_time_step(matls, el_size, safety_factor);
 steps{1}.load.time = 0: time_step:  max_time;
 steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycles);
 
@@ -128,4 +129,5 @@ figure;
 display_options.draw_elements = 0; %makes it easier to see waves if element edges not drawn
 h_patch = fn_show_geometry(mod, matls, display_options);
 anim_options.repeat_n_times = 1;
+anim_options.norm_val = 1000;
 fn_run_animation(h_patch, res{1}.fld, anim_options);

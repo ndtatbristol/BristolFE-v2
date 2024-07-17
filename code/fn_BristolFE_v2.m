@@ -42,6 +42,9 @@ switch fe_options.global_matrix_builder_version
         [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v4(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);
 end
 
+% mats.C = fn_add_interface_damping(mod, mats.M, mats.C, mats.gl_lookup, 100000000);
+
+
 if isempty(steps)
     %Useful if only matrices are required
     res = {};

@@ -1,4 +1,4 @@
-function [K, C, M, gl_lookup] = fn_build_global_matrices_v4(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, fe_options)
+function [K, C, M, gl_lookup] = fn_build_global_matrices_v5(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, fe_options)
 %SUMMARY
 %   Creates global matrices from mesh definitions
 %INPUTS
