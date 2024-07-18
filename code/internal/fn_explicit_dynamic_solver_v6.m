@@ -132,10 +132,10 @@ end
 t1 = clock;
 ti_start = inf;
 if ~isempty(forcing_indices)
-    ti_start = min(min(find(sum(forcing_functions))), ti_start);
+    ti_start = min(min(find(sum(abs(forcing_functions)))), ti_start);
 end
 if ~isempty(disp_indices)
-    ti_start = min(min(find(sum(disp_functions))), ti_start);
+    ti_start = min(min(find(sum(abs(disp_functions)))), ti_start);
 end
 
 prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');

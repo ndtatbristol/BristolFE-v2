@@ -8,8 +8,6 @@ addpath(genpath('../code'));
 %the desired mp4 filename (without the mp4 extension):
 
 anim_options.mp4_out = 'example_animation';
-
-
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
@@ -56,7 +54,7 @@ src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 =
 %Details of input signal
 centre_freq = 5e6;
 no_cycles = 4;
-max_time = 20e-6;
+max_time = 20e-6 * 2;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
@@ -126,4 +124,5 @@ figure;
 display_options.draw_elements = 0; %makes it easier to see waves if element edges not drawn
 h_patch = fn_show_geometry(mod, matls, display_options);
 anim_options.repeat_n_times = 1;
+anim_options.norm_val = 1000;
 fn_run_animation(h_patch, res{1}.fld, anim_options);

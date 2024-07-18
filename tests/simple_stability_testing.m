@@ -1,5 +1,7 @@
 clear
 close all
+restoredefaultpath;
+addpath(genpath('..'));
 
 el_size = 1e-3;
 
@@ -20,7 +22,7 @@ min_decades = -3;
 max_decades = 1;
 ymax = 1.01;
 
-rayleigh_damping = 1000000;
+interface_damping_factor = 1;
 
 %--------------------------------------------------------------------------
 
@@ -133,18 +135,20 @@ mod.els = [1,2,3; 2,4,3];
 mod.el_mat_i = [1;2];
 mod = fn_add_fluid_solid_interface_els(mod, matls, []);
 
-maxEV = zeros(numel(dt), 2);
+maxEV = zeros(numel(dt), 3);
 
 %Stability vs. time step
 for i = 1:numel(dt)
-    [K, C, M, gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, zeros(size(mod.el_mat_i)), mod.el_typ_i, matls, []);
+    fe_options.interface_damping_factor = 0;
+    [K, C, M, gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, zeros(size(mod.el_mat_i)), mod.el_typ_i, matls, fe_options);
     [~, maxEV(i, 1)] = fn_amplification_matrix(M, C .* eye(size(C)), K, dt(i), []);
-    % if rayleigh_damping
-    %     C = C + M * rayleigh_damping;
-    % end
-    C = fn_add_interface_damping(mod, M, C, gl_lookup, rayleigh_damping);
     [~, maxEV(i, 2)] = fn_amplification_matrix(M, C, K, dt(i), []);
+    % C = fn_add_interface_damping(mod.els, mod.el_typ_i, K, C, M, gl_lookup, interface_damping_factor);
+    fe_options.interface_damping_factor = 1;
+    [K, C, M, gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, zeros(size(mod.el_mat_i)), mod.el_typ_i, matls, fe_options);
+    [~, maxEV(i, 3)] = fn_amplification_matrix(M, C, K, dt(i), []);
 end
+
 
 figure;
 subplot(1,2,1)
@@ -152,10 +156,11 @@ h_patch = fn_show_geometry(mod, matls, []);
 subplot(1,2,2)
 loglog(dt / crit_dt, maxEV(:, 1), 'b'); hold on;
 loglog(dt / crit_dt, maxEV(:, 2), 'r.');
+loglog(dt / crit_dt, maxEV(:, 3), 'g.');
 ylim([1, ymax]);
 xlabel('dt / dt_{crit}')
 ylabel('Max EV');
-legend('Steel', 'Coupled');
+legend('Steel', 'Coupled', 'Satbilised');
 title('Two 2D elements')
 
 %--------------------------------------------------------------------------
@@ -186,16 +191,17 @@ mod = fn_set_els_inside_bdry_to_mat(mod, water_bdry_pts, 2);
 %coupling between fluid and solid
 mod = fn_add_fluid_solid_interface_els(mod, matls);
 
-maxEV = zeros(numel(dt), 2);
+maxEV = zeros(numel(dt), 3);
 %Stability vs. time step
 for i = 1:numel(dt)
-    [K, C, M, gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, zeros(size(mod.el_mat_i)), mod.el_typ_i, matls, []);
+    fe_options.interface_damping_factor = 0;
+    [K, C, M, gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, zeros(size(mod.el_mat_i)), mod.el_typ_i, matls, fe_options);
     [~, maxEV(i, 1)] = fn_amplification_matrix(M, C .* eye(size(C)), K, dt(i), []);
-    % if rayleigh_damping
-    %     C = C + M * rayleigh_damping;
-    % end
-    C = fn_add_interface_damping(mod, M, C, gl_lookup, rayleigh_damping);
     [~, maxEV(i, 2)] = fn_amplification_matrix(M, C, K, dt(i), []);
+    % C = fn_add_interface_damping(mod.els, mod.el_typ_i, K, C, M, gl_lookup, interface_damping_factor);
+    fe_options.interface_damping_factor = 1;
+    [K, C, M, gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, zeros(size(mod.el_mat_i)), mod.el_typ_i, matls, fe_options);
+    [~, maxEV(i, 3)] = fn_amplification_matrix(M, C, K, dt(i), []);
 end
 
 figure;
@@ -204,9 +210,10 @@ h_patch = fn_show_geometry(mod, matls, []);
 subplot(1,2,2)
 loglog(dt / crit_dt, maxEV(:, 1), 'b'); hold on;
 loglog(dt / crit_dt, maxEV(:, 2), 'r.');
+loglog(dt / crit_dt, maxEV(:, 3), 'g.');
 ylim([1, ymax]);
 xlabel('dt / dt_{crit}')
 ylabel('Max EV');
-legend('Steel', 'Coupled');
+legend('Steel', 'Coupled', 'Satbilised');
 title('Proper mesh')
 
