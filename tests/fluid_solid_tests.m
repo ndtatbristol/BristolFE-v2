@@ -7,8 +7,8 @@ addpath(genpath('../code'));
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
-src_angle_degs = [0:2:20] + 180; %0 is normal incidence
-% src_angle_degs = 30 + 180;
+src_angle_degs = [0:0.5:30] + 180; %0 is normal incidence
+% src_angle_degs = 20 + 180;
 
 fluid_vel = 1500;
 fluid_rho = 1000;
@@ -21,8 +21,10 @@ refr_L_angle_degs = -asind(sind(src_angle_degs) * solid_L_vel / fluid_vel);
 refr_S_angle_degs = -asind(sind(src_angle_degs) * solid_S_vel / fluid_vel);
 
 
-show_mesh = 1;
-fe_options.interface_damping_factor = 10;
+show_mesh_only = 0;
+show_animation = 0;
+fe_options.interface_damping_factor = 0;
+safety_factor = 1.5;
 
 steel_matl_i = 1;
 %Material properties
@@ -73,10 +75,10 @@ mon_rad = model_size - 3 * abs_bdry_thickness;
 centre_freq = 5e6;
 no_cycles = 4;
 max_time = 8e-6;
-safety_factor = 1.5;
+
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 10;
+els_per_wavelength = 20;
 
 %The default option is field_output_every_n_frames = inf, which means there
 %is no field output. Set to a finite value to get a field output.
@@ -163,7 +165,7 @@ end
 
 %Show the mesh
 cols = 'cbgm';
-if show_mesh
+if show_mesh_only
     figure;
     j = 1;
     for i = 1:numel(src_angle_degs)
@@ -183,6 +185,7 @@ if show_mesh
         display_options.node_sets_to_plot(j).col = [cols(j-1), '.'];
         h_patch = fn_show_geometry(mod, matls, display_options);
     end
+    return
 end
 
 %--------------------------------------------------------------------------
@@ -202,15 +205,15 @@ for i = 1:numel(src_angle_degs)
         d = steps{i}.mon.dfs;
         switch j
             case {1,2}
-                tmp = mean(res{i}.dsps(k, :)); %fluid monitoring - no need to worry about DoFs
+                tmp = mean(res{i}.dsps(res{i}.valid_mon_dsps(k), :)); %fluid monitoring - no need to worry about DoFs
             case 3
                 %solid displacements for L waves - need to resolve onto polarisation direction
-                tmp = mean(res{i}.dsps(k & d == 1, :)) * sind(refr_L_angle_degs(i)) + ...
-                      mean(res{i}.dsps(k & d == 2, :)) * cosd(refr_L_angle_degs(i));
+                tmp = mean(res{i}.dsps(res{i}.valid_mon_dsps(k & d == 1), :)) * sind(refr_L_angle_degs(i)) + ...
+                      mean(res{i}.dsps(res{i}.valid_mon_dsps(k & d == 2), :)) * cosd(refr_L_angle_degs(i));
             case 4
                 %solid displacements for S waves - need to resolve onto polarisation direction
-                tmp = mean(res{i}.dsps(k & d == 1, :)) * sind(refr_S_angle_degs(i) + 90) + ...
-                      mean(res{i}.dsps(k & d == 2, :)) * cosd(refr_S_angle_degs(i) + 90);
+                tmp = mean(res{i}.dsps(res{i}.valid_mon_dsps(k & d == 1), :)) * sind(refr_S_angle_degs(i) + 90) + ...
+                      mean(res{i}.dsps(res{i}.valid_mon_dsps(k & d == 2), :)) * cosd(refr_S_angle_degs(i) + 90);
         end
         tmp = abs(fn_hilbert(tmp(:)));
 
@@ -234,11 +237,19 @@ for i = 1:numel(src_angle_degs)
 end
 
 figure;
-fine_angle_degs = 0: max(src_angle_degs);
+fine_angle_degs = 0: 0.1: max(src_angle_degs);
+
 z_fluid = fluid_rho * fluid_vel;
-z_solid = solid_rho * solid_L_vel;
+z_solid_L = solid_rho * solid_L_vel;
+z_solid_S = solid_rho * solid_S_vel;
+
+fn_del = @(cs, cl, ts, tp) 4 * (cs / cl) ^ 2 * sind(ts) .* cosd(ts) .* sind(tp) .* cosd(tp) + 1 - 4 * (sind(ts) .* cosd(ts)) .^ 2;
+fn_T_L = @(cs, cl, tp, ts, tl, zF, zL) 2 * cosd(tp) .* (1 - 2 * sind(ts) .^ 2) ./ (cosd(tl) + zL / zF * cosd(tp .* fn_del(cs, cl, ts, tl)));
+fn_T_S = @(cs, cl, tp, ts, tl, xF, zS) -4 * cosd(tp) .* cosd(tl) .* sind(ts) ./ (cosd(tl) + zL / zF * cosd(tp .* fn_del(cs, cl, ts, tl)));
+fn_snell_degs = @(t1, c1, c2) asind(sind(t1) * c2 / c1);
+
+
 % (z_solid - z_fluid) / (z_solid + z_fluid)
-col = 'bmg'
 for j = 2:4
     semilogy(src_angle_degs, val(:, j), [cols(j), 'o-']);
     hold on;
@@ -247,7 +258,7 @@ end
 legend('Reflection', 'L refraction', 'S refraction')
 
 %Animate result
-if show_mesh
+if show_animation
     figure;
     display_options.draw_elements = 0; %makes it easier to see waves if element edges not drawn
     h_patch = fn_show_geometry(mod, matls, display_options);
