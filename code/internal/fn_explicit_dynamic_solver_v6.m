@@ -39,12 +39,23 @@ else
 	use_gpu_if_present = varargin{1};
 end
 if numel(varargin) < 2
+	field_output_type = 'KE';
+else
+	field_output_type = varargin{2};
+end
+if numel(varargin) < 3
 	solver_mode = 'vel at last half time step';
 else
-	solver_mode = varargin{2};
+	solver_mode = varargin{3};
 end
 
-
+%--------------------------------------------------------------------------
+switch field_output_type
+    case {'mean(u1)', 'mean(u2)', 'mean(u3)', 'curl(u)', 'div(u)', 'raw(u)'}
+        field_output_is_vel = 0;
+    otherwise
+        field_output_is_vel = 1;
+end
 
 gpu_present = fn_test_if_gpu_present_and_working;
 if use_gpu_if_present && gpu_present
@@ -67,7 +78,7 @@ end
 
 ndf = size(K, 1);
 
-fprintf('    Explicit time marching v6 (GPU = %i, time steps = %i, DOF = %i) ', use_gpu,  numel(time), ndf);
+fprintf('Explicit time marching v6 (GPU = %i, time steps = %i, DOF = %i) ', use_gpu,  numel(time), ndf);
 dt = time(2) - time(1);
 
 %initialise history and field output variables

@@ -1,4 +1,4 @@
-clear;
+clearvars -except scripts_to_run
 close all;
 restoredefaultpath;
 addpath(genpath('../code'));
@@ -101,12 +101,13 @@ main.doms{1}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdr
 main.doms{1}.mod = fn_add_scatterer(main.doms{1}.mod, main.matls, scat_pts, water_matl_i);
 
 %Show the mesh
-figure;
-display_options.draw_elements = 0;
-display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
-display_options.node_sets_to_plot(1).col = 'r.';
-h_patch = fn_show_geometry_with_subdomains(main, display_options);
-
+if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    figure;
+    display_options.draw_elements = 0;
+    display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
+    display_options.node_sets_to_plot(1).col = 'r.';
+    h_patch = fn_show_geometry_with_subdomains(main, display_options);
+end
 %--------------------------------------------------------------------------
 
 %Run main model
@@ -130,13 +131,15 @@ fe_options.validation_mode = 1;
 main = fn_run_main_model(main, fe_options);
 
 %Animate validation results if requested
-if ~isinf(fe_options.field_output_every_n_frames)
-    figure;
-    anim_options.repeat_n_times = 1;
-    anim_options.db_range = [-40, 0];
-    anim_options.pause_value = 0.001;
-    h_patches = fn_show_geometry(main.doms{1}.val_mod, main.matls, anim_options);
-    fn_run_animation(h_patches, main.doms{1}.val.trans{1}.fld, anim_options);
+if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    if ~isinf(fe_options.field_output_every_n_frames)
+        figure;
+        anim_options.repeat_n_times = 1;
+        anim_options.db_range = [-40, 0];
+        anim_options.pause_value = 0.001;
+        h_patches = fn_show_geometry(main.doms{1}.val_mod, main.matls, anim_options);
+        fn_run_animation(h_patches, main.doms{1}.val.trans{1}.fld, anim_options);
+    end
 end
 
 %View the time domain data and compare wih validation
@@ -149,7 +152,3 @@ plot(main.doms{1}.val.fmc.time, sum(main.doms{1}.val.fmc.time_data, 2) / mv, 'b'
 plot(main.doms{1}.res.fmc.time, (sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'r');
 ylim([-1,1]);
 legend('Sub-domain method', 'Validation', 'Difference');
-
-
-
-

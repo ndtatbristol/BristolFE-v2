@@ -1,4 +1,4 @@
-clear;
+clearvars -except scripts_to_run
 close all;
 restoredefaultpath;
 addpath(genpath('../code'));
@@ -70,12 +70,13 @@ steps{1}.mon.nds = steps{1}.load.frc_nds;
 steps{1}.mon.dfs = steps{1}.load.frc_dfs;
 
 %Show the mesh
-figure; 
-display_options.draw_elements = 1;
-display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
-display_options.node_sets_to_plot(1).col = 'r.';
-h_patch = fn_show_geometry(mod, matls, display_options);
-
+if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    figure;
+    display_options.draw_elements = 1;
+    display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
+    display_options.node_sets_to_plot(1).col = 'r.';
+    h_patch = fn_show_geometry(mod, matls, display_options);
+end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
@@ -91,9 +92,10 @@ plot(steps{1}.load.time, sum(res{1}.dsps));
 xlabel('Time (s)')
 
 %Animate result
-figure;
-display_options.draw_elements = 0;
-h_patch = fn_show_geometry(mod, matls, display_options);
-anim_options.repeat_n_times = 1;
-fn_run_animation(h_patch, res{1}.fld, anim_options);
-
+if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    figure;
+    display_options.draw_elements = 0;
+    h_patch = fn_show_geometry(mod, matls, display_options);
+    anim_options.repeat_n_times = 1;
+    fn_run_animation(h_patch, res{1}.fld, anim_options);
+end
