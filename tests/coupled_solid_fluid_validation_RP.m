@@ -1,5 +1,5 @@
 clear all;
-% close all;
+close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 

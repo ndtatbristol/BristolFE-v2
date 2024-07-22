@@ -1,4 +1,4 @@
-function [K, C, M, gl_lookup] = fn_build_global_matrices_v4(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, fe_options)
+function [K, C, M, gl_lookup] = fn_build_global_matrices_v5(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, fe_options)
 %SUMMARY
 %   Creates global matrices from mesh definitions
 %INPUTS
@@ -9,6 +9,8 @@ function [K, C, M, gl_lookup] = fn_build_global_matrices_v4(nds, els, el_mat_i, 
 %   trailing zeros if element has less nodes than max_nds_per_el
 %   el_mat_i - m x 1 vector of element material indices (which refer to
 %   materials in 'matls' parameter
+%   el_abs_i - m x 1 vector of element absorption level from 0 to 1
+%   el_typ_i - m x 1 cell array of element types
 %   matls - p x 1 structured variable of materials with fields
 %       matls(i).name - string giving name of material
 %       matls(i).rho - density of material
@@ -28,43 +30,10 @@ default_options.dof_to_use = []; %Blank uses all of available ones for all eleme
 default_options.damping_power_law = 3;
 default_options.max_damping = 3.1415e+07;
 default_options.max_stiffness_reduction = 0.01;
-default_options.diag_loading = 0;
+default_options.interface_damping_factor = 0;
 
 fe_options = fn_set_default_fields(fe_options, default_options);
 
-%switch depending on DOF
-% if numel(varargin) < 1
-%     dof_to_use = [];
-% else
-%     dof_to_use = varargin(1);
-% end
-% 
-% %Max damping attenuation
-% if numel(varargin) < 2
-%     max_damping = 3.1415e+07;
-% else
-%     max_damping = varargin(2);
-% end
-% 
-% if numel(varargin) < 3
-%     max_stiffness_reduction = 0.01;
-% else
-%     max_stiffness_reduction = varargin(3);
-% end
-
-%this next bit not right in general - will need to work with diff element
-%types
-% if isempty(dof_to_use)
-%     dof_to_use = [1:2];
-%     no_stress_components = 3;
-% end
-% 
-% % nds_per_el = 3;
-
-%check inputs
-% if (max(max(els)) > size(nds, 1)) | (min(min(els)) < 1)
-%     error('Element node number(s) refers to undefined nodes');
-% end
 if ~isvector(el_mat_i)
     error('Element materials must be a vector');
 end
@@ -74,14 +43,8 @@ end
 if ~isvector(matls)
     error('Materials structure must be a vector');
 end
-% if (max(el_mat_i) > length(matls)) | (min(el_mat_i) < 1)
-%     error('Element material(s) refers to undefined material');
-% end
 
-% el_typ_i = repmat({'CPE3_last'}, [size(els, 1), 1]); %this should be input
-% el_typ_i = repmat({'CPE3'}, [size(els, 1), 1]); %this should be input
-% dof_to_use = [1, 2];
-
+fprintf('    Global matrix builder v5 (nodes = %i, elements = %i, ', size(nds, 1), size(els, 1));
 t1 = clock;
 
 %find unique element types, max DoF per element, and actual DoFs in use
@@ -100,8 +63,9 @@ Kvec = zeros(total_el_dfs, 1);
 Mvec = zeros(total_el_dfs, 1);
 Cvec = zeros(total_el_dfs, 1);
 
+
+
 %Loop over unique element types
-fprintf('    Global matrix builder v5 (nodes = %i, elements = %i, ', no_nds, size(els, 1));
 i1 = 1;
 for t = 1:numel(unique_typs)
     fn_el_mats = str2func(['fn_el_', unique_typs{t}]);
@@ -139,7 +103,7 @@ for t = 1:numel(unique_typs)
         
 
         %Get the element stiffness and mass matrices
-        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(el_i2, :), D, rho, fe_options.dof_to_use, fe_options.diag_loading);
+        [el_K, el_C, el_M, loc_nd, loc_df] = fn_el_mats(nds, els(el_i2, :), D, rho, fe_options.dof_to_use);
 
         % %convert loc_df into indices starting at 1 (necessary to avoid
         % %wasting tons of space when dealing with acoustic elements with the
@@ -189,9 +153,15 @@ tmp = repmat([1:max_df], 1, no_nds);
 gl_dofs = tmp(:);
 [gl_nds, gl_dofs, ~, K, M, C] = fn_reduce_global_matrices(gl_nds, gl_dofs, [], K, M, C);
 
-%Finally poduce global lookup matrix (row = node, col = DOF, content =
+
+%Produce global lookup matrix (row = node, col = DOF, content =
 %global matrix index associated with node and DOF).
 gl_lookup = fn_create_fast_lookup(gl_nds, gl_dofs, no_nds, 0);
+
+%Add interface damping if requested
+if fe_options.interface_damping_factor
+    C = fn_add_interface_damping(els, el_typ_i, K, C, M, gl_lookup, fe_options.interface_damping_factor);
+end
 
 fprintf('DOF = %i) .......... completed in %.2f secs\n', size(K, 1), etime(clock, t1));
 

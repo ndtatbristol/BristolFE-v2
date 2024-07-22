@@ -1,4 +1,4 @@
-clear;
+clearvars -except scripts_to_run
 close all;
 restoredefaultpath;
 addpath(genpath('../code'));
@@ -17,8 +17,8 @@ matls(1).el_typ = 'AC2D3'; %AC2D3 must be the element type for a fluid
 %Define shape of model - a right angle triangle in this example
 model_size = 10e-3;
 bdry_pts = [
-    0, 0 
-    model_size, 0 
+    0, 0
+    model_size, 0
     model_size, model_size
     0, model_size * 0.8];
 
@@ -49,7 +49,7 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 %Create the nodes and elements of the mesh
 mod = fn_isometric_structured_mesh(bdry_pts, el_size);
 
-%Identify nodes along the source line to say where the loading will be 
+%Identify nodes along the source line to say where the loading will be
 %when FE model is run
 steps{1}.load.frc_nds = fn_find_nodes_on_line(mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
 steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * src_dir;
@@ -67,12 +67,14 @@ steps{1}.mon.nds = steps{1}.load.frc_nds;
 steps{1}.mon.dfs = steps{1}.load.frc_dfs;
 
 %Show the mesh
-figure; 
-display_options.draw_elements = 1;
-display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
-display_options.node_sets_to_plot(1).col = 'r.';
-h_patch = fn_show_geometry(mod, matls, display_options);
+if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
 
+    figure;
+    display_options.draw_elements = 1;
+    display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
+    display_options.node_sets_to_plot(1).col = 'r.';
+    h_patch = fn_show_geometry(mod, matls, display_options);
+end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
@@ -81,16 +83,18 @@ res = fn_BristolFE_v2(mod, matls, steps, fe_options);
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
 
-%Show the history output as a function of time - here we just sum over all 
+%Show the history output as a function of time - here we just sum over all
 %the nodes where displacments were recorded
 figure;
 plot(steps{1}.load.time, sum(res{1}.dsps));
 xlabel('Time (s)')
 
 %Animate result
-figure;
-display_options.draw_elements = 0;
-h_patch = fn_show_geometry(mod, matls, display_options);
-anim_options.repeat_n_times = 1;
-fn_run_animation(h_patch, res{1}.fld, anim_options);
+if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
 
+    figure;
+    display_options.draw_elements = 0;
+    h_patch = fn_show_geometry(mod, matls, display_options);
+    anim_options.repeat_n_times = 1;
+    fn_run_animation(h_patch, res{1}.fld, anim_options);
+end

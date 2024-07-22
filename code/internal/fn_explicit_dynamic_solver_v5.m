@@ -29,7 +29,7 @@ function [history_output, field_output, force_output, field_output_time] = fn_ex
 
 %--------------------------------------------------------------------------
 field_output_is_vel = 1;
-if isempty(varargin)
+if numel(varargin) < 1
 	use_gpu_if_present = 1;
 else
 	use_gpu_if_present = varargin{1};
@@ -44,18 +44,20 @@ else
 end
 
 %Error checks
-if size(K,1) ~= size(K, 2)
+ndf = size(K, 1);
+
+if ndf ~= size(K, 2)
     error('K must be square matrix');
 end
-if size(C,1) ~= size(C, 2)
-    error('C must be square matrix');
+if size(C,1) ~= ndf || size(C, 2) ~= ndf
+    error('C must be square matrix, same size as K');
 end
-if size(M,1) ~= size(M, 2)
-    error('M must be square matrix');
+if size(M,1) ~= ndf || size(M, 2) ~= ndf
+    error('M must be square matrix, same size as K');
 end
 
-fprintf('Explicit time marching v5 (GPU = %i, time steps = %i) ', use_gpu,  numel(time));
-time_step = time(2) - time(1);
+fprintf('    Explicit time marching v5 (GPU = %i, time steps = %i, DOF = %i) ', use_gpu,  numel(time), ndf);
+dt = time(2) - time(1);
 
 %initialise history and field output variables
 if isempty(history_indices)
@@ -71,12 +73,12 @@ else
     tmp = disp_functions;
     tmp = [zeros(size(disp_functions, 1), 2), disp_functions];
     accn = zeros(size(disp_functions));
-    accn = (tmp(:, 3:end) - 2 * tmp(:, 2:end-1) + tmp(:, 1:end-2)) / time_step ^ 2;
+    accn = (tmp(:, 3:end) - 2 * tmp(:, 2:end-1) + tmp(:, 1:end-2)) / dt ^ 2;
 end
 
 if ~isinf(field_output_every_n_frames)
     field_output_ti = 1:field_output_every_n_frames:length(time);
-    field_output = zeros(size(K, 1), length(field_output_ti));
+    field_output = zeros(ndf, length(field_output_ti));
     field_output_time = zeros(1, length(field_output_ti));
 else
     field_output_ti = [];
@@ -84,14 +86,14 @@ else
     field_output_time = [];
 end
 
-diag_M = spdiags(sum(M).', 0, size(K,1), size(K,2));
-inv_M = spdiags(1 ./ sum(M).', 0, size(K,1), size(K,2));
+diag_M = spdiags(sum(M).', 0, ndf, ndf);
+inv_M = spdiags(1 ./ sum(M).', 0, ndf, ndf);
 
-u_previous = zeros(size(K, 1), 1);
-u_dot_previous = zeros(size(K, 1), 1);
-u_dot_dot_previous = zeros(size(K, 1), 1);
+u_previous = zeros(ndf, 1);
+u_dot_previous = zeros(ndf, 1);
+u_dot_dot_previous = zeros(ndf, 1);
 
-f = zeros(size(K, 1), 1);
+f = zeros(ndf, 1);
 
 if use_gpu
 	K = gpuArray(K);
@@ -133,6 +135,10 @@ end
 if ~isempty(disp_indices)
     ti_start = min(min(find(sum(abs(disp_functions)))), ti_start);
 end
+
+prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');
+prog_dot_ti = prog_dot_ti(2: end);
+
 for ti = ti_start:length(time)
     %set force at forcing node equal to excitation signal at this instant
     %in time
@@ -144,10 +150,10 @@ for ti = ti_start:length(time)
     u_dot_dot_previous = inv_M * (f - K * u_previous - C * u_dot_previous);
 
     %work out velocity
-    u_dot = u_dot_previous + time_step * u_dot_dot_previous;
+    u_dot = u_dot_previous + dt * u_dot_dot_previous;
     
     %work out displacement at next time step
-    u = u_previous + time_step * u_dot;
+    u = u_previous + dt * u_dot;
     
     %impose displacements
     if ~isempty(disp_indices)
@@ -176,8 +182,8 @@ for ti = ti_start:length(time)
     u_dot_previous = u_dot;
     
     %Show how far through calculation is
-    if rem(ti,100) == 0
-        fn_simple_text_progress_bar(ti, length(time));
+    if ismember(ti, prog_dot_ti)
+        fprintf('.')
     end
 end
 if use_gpu
@@ -194,6 +200,6 @@ if use_gpu
 end
 
 t2 = etime(clock, t1);
-fprintf('completed in %.2f secs\n', t2);
+fprintf(' completed in %.2f secs\n', t2);
 
 end

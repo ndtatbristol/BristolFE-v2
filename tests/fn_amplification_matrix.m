@@ -34,5 +34,9 @@ switch fe_options.solver_mode
             speye(ndf), sparse(ndf, ndf)];
 
 end
-max_EV = eigs(A, 1);
+if prod(size(A)) < 500 ^ 2
+    max_EV = max(abs(eig(full(A))), [], 'all');
+else
+    max_EV = max(abs(eigs(A, 1)), [], 'all');
+end
 end

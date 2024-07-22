@@ -1,4 +1,4 @@
-clear;
+clearvars -except scripts_to_run
 close all;
 restoredefaultpath;
 addpath(genpath('../code'));

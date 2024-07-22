@@ -15,10 +15,10 @@ function [res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options)
 
 default_options.use_gpu_if_available = 1;
 default_options.field_output_every_n_frames = inf;
-default_options.global_matrix_builder_version = 'v4';
-default_options.dynamic_solver_version = 'v5';
+default_options.global_matrix_builder_version = 'v5';
+default_options.dynamic_solver_version = 'v6';
 default_options.solver_mode = 'vel at last half time step';
-default_options.field_output = 'element KE';
+default_options.field_output_type = 'KE';
 fe_options = fn_set_default_fields(fe_options, default_options);
 
 %Check inputs - are all mesh and material details consistent?
@@ -36,10 +36,10 @@ end
 
 %Build the global matrices
 switch fe_options.global_matrix_builder_version
-    case 'v5'
-        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);
-    otherwise %v4 is default
+    case 'v4'
         [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v4(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);
+    otherwise %v5 is default
+        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);
 end
 
 if isempty(steps)
@@ -93,15 +93,20 @@ for s = 1:numel(steps)
         end
 
         %Explicit dynamic analysis - (2) run it!
+        if numel(steps) > 1
+            fprintf('    (%2i/%2i) ', s, numel(steps));
+        else
+            fprintf('    ');
+        end
         switch fe_options.dynamic_solver_version
-            case'v6'
-                [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
-                    fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
-                    frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.solver_mode);
-            otherwise %v5 is default
+            case'v5'
                 [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
                     fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, ...
                     frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available);
+            otherwise %v6 is now the default
+                [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
+                    fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
+                    frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode);
         end
         
         %Parse the monitored history outputs
@@ -123,7 +128,8 @@ for s = 1:numel(steps)
         %Convert field output to element values
         if ~isempty(fld)
             % res{s}.fld = fn_get_plot_vals_v3(fld, mats.gl_lookup, mod.els, mats.M);
-            res{s}.fld = fn_get_plot_vals_v4(fld, mats.gl_lookup, mod.nds, mod.els, mats.M, fe_options.field_output);
+            % res{s}.fld = fn_get_plot_vals_v4(fld, mats.gl_lookup, mod.nds, mod.els, mats.M, fe_options.field_output);
+            res{s}.fld = fn_get_field_output(fld, mod, mats, fe_options.field_output_type);
         else
             res{s}.fld = [];
         end
