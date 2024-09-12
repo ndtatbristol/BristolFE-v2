@@ -23,6 +23,7 @@ end
 
 dm_mod.nds = mn_mod.nds;
 dm_mod.els = mn_mod.els;
+dm_mod.el_centres = mn_mod.el_centres;
 dm_mod.el_mat_i = mn_mod.el_mat_i;
 if isfield(mn_mod, 'el_abs_i')
     dm_mod.el_abs_i = mn_mod.el_abs_i;
