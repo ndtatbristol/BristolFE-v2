@@ -22,7 +22,7 @@ bdry_pts = [
     0, 0 
     model_size, 0 
     model_size, model_size
-    0, model_size * 0.8];
+    0, model_size * 1.0];
 
 %Define a line along which sources will be placed to excite waves
 src_end_pts = [

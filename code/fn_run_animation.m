@@ -18,6 +18,7 @@ default_options.ti_step = 1;
 default_options.norm_val = [];
 default_options.repeat_n_times = 1;
 default_options.db_or_linear = 'db';
+default_options.clear_at_end = 1;
 anim_options = fn_set_default_fields(anim_options, default_options);
 
 if ~iscell(h_patch)
@@ -88,14 +89,17 @@ for a = 1:anim_options.repeat_n_times
                 set(h_patch{i}, 'CData', base_cdata{i} .* (1 - v) + v .* max_cdata);
             end
         end
+        title(sprintf('Frame %i', ti))
         pause(anim_options.pause_value);
         if ~isempty(anim_options.mp4_out)
             writeVideo(vidObj,getframe(gcf));
         end
     end
     %Reset figure
-    for i = 1:numel(h_patch)
-        set(h_patch{i}, 'CData', base_cdata{i});
+    if anim_options.clear_at_end
+        for i = 1:numel(h_patch)
+            set(h_patch{i}, 'CData', base_cdata{i});
+        end
     end
 end
 

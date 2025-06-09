@@ -23,6 +23,7 @@ time_step = main.inp.time(2) - main.inp.time(1);
 %Run the scatterer models
 for d = fe_options.doms_to_run
     main.doms{d} = fn_clear_fields(main.doms{d}, 'res', 1, 0);
+    % fprintf('      Convolving %i inputs', numel(fe_options.tx_trans));
     for si = 1:numel(fe_options.tx_trans) %si is step counter for FE, one step per transmitting transducer
         t = fe_options.tx_trans(si);
 
