@@ -1,16 +1,16 @@
-function [res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options)
+function varargout = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %SUMMARY
 %   Entry function for Bristol FE v2.
 %INPUTS
 %   mod - description of mesh including nodes, elements, material
 %   indices, and possibly absorbing indices if absorbing layers are used.
 %   matls - description of materials used in mod
-%   steps - description of one or more (use cell array) steps in which 
+%   steps - description of one or more (use cell array) steps in which
 %       loads are applied, including details of the load and what is
 %       recorded
 %OUTPUTS
 %   res - results from each load step
-%   mats - global matrices for model
+%   [mats - global matrices for model]
 %--------------------------------------------------------------------------
 
 default_options.use_gpu_if_available = 1;
@@ -19,6 +19,7 @@ default_options.global_matrix_builder_version = 'v5';
 default_options.dynamic_solver_version = 'v6';
 default_options.solver_mode = 'vel at last half time step';
 default_options.field_output_type = 'KE';
+default_options.solver_precision = 'double';
 fe_options = fn_set_default_fields(fe_options, default_options);
 
 %Check inputs - are all mesh and material details consistent?
@@ -106,9 +107,9 @@ for s = 1:numel(steps)
             otherwise %v6 is now the default
                 [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
                     fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
-                    frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode);
+                    frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
         end
-        
+
         %Parse the monitored history outputs
         if isfield(steps{s}.mon, 'nds')
             res{s}.dsps(res{s}.valid_mon_dsps, :) = mon_dsps;
@@ -133,10 +134,14 @@ for s = 1:numel(steps)
         else
             res{s}.fld = [];
         end
-        
+
     end
 end
 
+varargout{1} = res;
+if nargout > 1
+    varargout{2} =  mats;
+end
 end
 
 function [gi, nds, dfs, valid] = fn_nds_and_dfs_to_gi(nds, dfs, gl_lookup)

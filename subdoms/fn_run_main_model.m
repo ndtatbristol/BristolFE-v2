@@ -117,8 +117,7 @@ for m = 1:numel(main_modes)
                 %impulse responses
                 main.res = fn_parse_to_bdry_nds(main.res, fe_res, mon_nds, mon_dfs);
                 %Pristine FMC results
-                % main.res.fmc = fn_parse_to_fmc(steps, fe_res, main.trans, fe_options, main.inp.sig);
-                main.res.fmc = fn_parse_to_fmc(main.res.fmc_template, steps, fe_res, main.trans, main.inp.sig);
+                main.res.fmc = fn_parse_to_fmc(main.res.fmc_template, steps, fe_res, main.trans, main.inp.sig, fe_options);
             end
 
             %Parse the pristine toneburst field data for movies
@@ -141,8 +140,7 @@ for m = 1:numel(main_modes)
                 end
 
                 %Parse the validation FMC results
-                % main.doms{d}.val.fmc = fn_parse_to_fmc(steps, fe_res, main.trans, fe_options, []);
-                main.doms{d}.val.fmc = fn_parse_to_fmc(main.res.fmc_template, steps, fe_res, main.trans, []);
+                main.doms{d}.val.fmc = fn_parse_to_fmc(main.res.fmc_template, steps, fe_res, main.trans, [], fe_options);
             end
        
     end
@@ -229,7 +227,7 @@ end
 end
 
 
-function fmc = fn_parse_to_fmc(fmc_template, steps, res, trans, in_sig)
+function fmc = fn_parse_to_fmc(fmc_template, steps, res, trans, in_sig, fe_options)
 fmc = fmc_template;
 for k = 1:numel(fmc.tx)
     i = ismember(steps{fmc.tx(k)}.mon.nds, trans{fmc.rx(k)}.nds);
@@ -243,7 +241,7 @@ for k = 1:numel(fmc.tx)
     %results which are generated for impulse response)
     fmc.time_data(:, k) = tmp(:);
     if ~isempty(in_sig)
-        fmc.time_data(:, k) = fn_convolve(fmc.time_data(:, k), in_sig(:), 1);
+        fmc.time_data(:, k) = fn_convolve(fmc.time_data(:, k), in_sig(:), 1, fe_options.use_gpu_if_available);
     end
 end
 end

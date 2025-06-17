@@ -48,6 +48,17 @@ if numel(varargin) < 3
 else
 	solver_mode = varargin{3};
 end
+if numel(varargin) < 3
+	solver_precision = 'double';
+else
+	solver_precision = varargin{4};
+end
+
+if isMATLABReleaseOlderThan('R2025a') && strcmpi(solver_precision, 'single')
+    fprintf(['WARNING: Matlab before R2025a does not support sparse, single ' ...
+        'precision matrices, defaulting to double precision instead\n']);
+    solver_precision = 'double';
+end
 
 %--------------------------------------------------------------------------
 switch field_output_type
@@ -78,29 +89,29 @@ end
 
 ndf = size(K, 1);
 
-fprintf('Explicit time marching v6 (GPU = %i, time steps = %i, DOF = %i) ', use_gpu,  numel(time), ndf);
+fprintf(['Explicit time marching v6 (GPU = %i, time steps = %i, DOF = %i, ', solver_precision, ') '], use_gpu, numel(time), ndf);
 dt = time(2) - time(1);
 
 %initialise history and field output variables
 if isempty(history_indices)
     history_output = [];
 else
-    history_output = zeros(length(history_indices), length(time));
+    history_output = zeros(length(history_indices), length(time), solver_precision);
 end
 
 if isempty(disp_indices)
     force_output = [];
 else
-    force_output = zeros(length(disp_indices), length(time));
+    force_output = zeros(length(disp_indices), length(time), solver_precision);
     tmp = disp_functions;
     tmp = [zeros(size(disp_functions, 1), 2), disp_functions];
-    accn = zeros(size(disp_functions));
+    accn = zeros(size(disp_functions), solver_precision);
     accn = (tmp(:, 3:end) - 2 * tmp(:, 2:end-1) + tmp(:, 1:end-2)) / dt ^ 2;
 end
 
 if ~isinf(field_output_every_n_frames)
     field_output_ti = 1:field_output_every_n_frames:length(time);
-    field_output = zeros(ndf, length(field_output_ti));
+    field_output = zeros(ndf, length(field_output_ti), solver_precision);
     field_output_time = zeros(1, length(field_output_ti));
 else
     field_output_ti = [];
@@ -125,18 +136,29 @@ switch solver_mode
         B1 = 2 * speye(ndf) - dt ^ 2 * inv_M * K;
         B2 =    -speye(ndf) + dt / 2 * inv_M * C;
         B3 =     speye(ndf) + dt / 2 * inv_M * C;
+        % B3 =     spdiags(1 ./ sum(B3).', 0, ndf, ndf); %can invert B3 here but doesn't seem to change speed
 end
 
 if use_gpu
-	% K = gpuArray(K);
-	% C = gpuArray(C);
-    inv_M = gpuArray(inv_M);
-    diag_M = gpuArray(diag_M);
-	u_minus_1 = gpuArray(u_minus_1);
-	u_minus_2 = gpuArray(u_minus_2);
-    B1 = gpuArray(B1);
-    B2 = gpuArray(B2);
-    f = gpuArray(f);
+    if strcmpi(solver_precision, 'single')
+        inv_M = gpuArray(single(inv_M));
+        diag_M = gpuArray(single(diag_M));
+    	u_minus_1 = gpuArray(single(u_minus_1));
+    	u_minus_2 = gpuArray(single(u_minus_2));
+        B1 = gpuArray(single(B1));
+        B2 = gpuArray(single(B2));
+        B3 = gpuArray(single(B3));
+        f = gpuArray(single(f));
+    else
+        inv_M = gpuArray(inv_M);
+        diag_M = gpuArray(diag_M);
+    	u_minus_1 = gpuArray(u_minus_1);
+    	u_minus_2 = gpuArray(u_minus_2);
+        B1 = gpuArray(B1);
+        B2 = gpuArray(B2);
+        B3 = gpuArray(B3);
+        f = gpuArray(f);
+    end
 end
 
 %Main time marching loop
@@ -152,6 +174,9 @@ end
 prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');
 prog_dot_ti = prog_dot_ti(2: end);
 
+if strcmpi(solver_precision, 'single')
+end
+
 
 for ti = ti_start:length(time)
     %set force at forcing node equal to excitation signal at this instant
@@ -166,6 +191,7 @@ for ti = ti_start:length(time)
             u =       dt ^ 2 * inv_M * f + B1 * u_minus_1 + B2 * u_minus_2;
         case 'vel at curent time step'
             u = B3 \ (dt ^ 2 * inv_M * f + B1 * u_minus_1 + B2 * u_minus_2);
+            % u = B3 * (dt ^ 2 * inv_M * f + B1 * u_minus_1 + B2 * u_minus_2); %use if inverting B3 above
     end
        
     %impose displacements
@@ -199,18 +225,18 @@ for ti = ti_start:length(time)
         fprintf('.')
     end
 end
-if use_gpu
-	if ~isempty(history_indices)
-		history_output = gather(history_output);
-	end
-	if ~isempty(disp_indices)
-		force_output = gather(force_output);
-	end
-	if ~isinf(field_output_every_n_frames)
-		field_output = gather(field_output);
-    end
-    reset(gpuDevice);
-end
+% if use_gpu
+% 	if ~isempty(history_indices)
+% 		history_output = gather(history_output);
+% 	end
+% 	if ~isempty(disp_indices)
+% 		force_output = gather(force_output);
+% 	end
+% 	if ~isinf(field_output_every_n_frames)
+% 		field_output = gather(field_output);
+%     end
+%     reset(gpuDevice);
+% end
 
 t2 = etime(clock, t1);
 fprintf(' completed in %.2f secs\n', t2);

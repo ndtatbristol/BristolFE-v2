@@ -1,12 +1,21 @@
 function h = fn_convolve(f, g, dim, varargin)
+%Convolves f by g along specified dim
 
 if numel(varargin) < 1
-    use_gpu = 1;
+    use_gpu_if_present = 1;
 else
-    use_gpu = varargin{1};
+    use_gpu_if_present = varargin{1};
 end
 
-%Convolves f by g along specified dim
+use_gpu = 0;
+if use_gpu_if_present
+    gpu_present = fn_test_if_gpu_present_and_working;
+    if gpu_present
+	    use_gpu = 1;
+        reset(gpuDevice);
+    end
+end
+
 fprintf('    Convolving %i signals with %i pts (GPU = %i)', prod(size(f)) / size(f,dim), size(f,dim), use_gpu);
 t1 = clock;
 

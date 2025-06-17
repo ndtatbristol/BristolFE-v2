@@ -40,7 +40,7 @@ for d = fe_options.doms_to_run
 
         %Sub-domain models are run with true input signal rather than
         %impulse response, which is what is recorded
-        bdry_dsps = fn_convolve(bdry_dsps, main.inp.sig, 2);
+        bdry_dsps = fn_convolve(bdry_dsps, main.inp.sig, 2, fe_options.use_gpu_if_available);
 
         %Convert to forces
         [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
@@ -97,7 +97,7 @@ for d = fe_options.doms_to_run
             %USE THE PARSE TO FMC DATA unction here instead!
             %Convolve with relevant receiver transfer function
             i = ismember(mn_all_nds_dfs, mn_bdry_nds_dfs, 'rows');
-            tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2));
+            tmp = sum(fn_convolve(main.res.trans{r}.dsps(i, :), frcs, 2, fe_options.use_gpu_if_available));
 
             %Add it onto the pristine FMC data already copied into this
             %domain's results
