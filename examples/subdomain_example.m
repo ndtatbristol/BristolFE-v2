@@ -1,5 +1,5 @@
 clearvars -except scripts_to_run
-% close all;
+close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 addpath(genpath('../subdoms'));
@@ -63,7 +63,7 @@ els_per_wavelength = 12;
 safety_factor = sqrt(2);
 
 %For animations, set the following to a non-infinite value
-fe_options.field_output_every_n_frames = 40;
+fe_options.field_output_every_n_frames = inf;40;
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 

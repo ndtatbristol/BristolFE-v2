@@ -44,7 +44,7 @@ else
 	field_output_type = varargin{2};
 end
 if numel(varargin) < 3
-	solver_mode = 'vel at last half time step';
+	solver_mode = 'vel at current time step';
 else
 	solver_mode = varargin{3};
 end
@@ -140,8 +140,6 @@ end
 
 if use_gpu
     if strcmpi(solver_precision, 'single')
-        inv_M = gpuArray(single(inv_M));
-        diag_M = gpuArray(single(diag_M));
     	u_minus_1 = gpuArray(single(u_minus_1));
     	u_minus_2 = gpuArray(single(u_minus_2));
         A = gpuArray(single(A));
@@ -150,8 +148,6 @@ if use_gpu
         f = gpuArray(single(f));
         forcing_functions = gpuArray(single(forcing_functions));
     else
-        inv_M = gpuArray(inv_M);
-        diag_M = gpuArray(diag_M);
     	u_minus_1 = gpuArray(u_minus_1);
     	u_minus_2 = gpuArray(u_minus_2);
         A = gpuArray(A);
@@ -175,15 +171,19 @@ end
 prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');
 prog_dot_ti = prog_dot_ti(2: end);
 
+% f = sparse(ndf, numel(time));
+% if size(forcing_functions,1) == 1
+%     f(forcing_indices, :) = ones(numel(forcing_indices), 1) * forcing_functions;
+% end
+% Aft = (A * f)';
+
 for ti = ti_start:length(time)
-    %set force at forcing node equal to excitation signal at this instant
-    %in time
-    if ti <= size(forcing_functions, 2)
-        f(forcing_indices) = forcing_functions(:, ti);
-    end
+    %set force at forcing node equal to excitation signal at this instant in time
+    f(forcing_indices) = full(forcing_functions(:, ti));
 
     %Main calculation!
     u = A * f + B * u_minus_1 + D * u_minus_2;
+    % u = full(Aft(ti, :))' + B * u_minus_1 + D * u_minus_2;
 
     %impose displacements
     if ~isempty(disp_indices)
@@ -216,18 +216,6 @@ for ti = ti_start:length(time)
         fprintf('.')
     end
 end
-% if use_gpu
-% 	if ~isempty(history_indices)
-% 		history_output = gather(history_output);
-% 	end
-% 	if ~isempty(disp_indices)
-% 		force_output = gather(force_output);
-% 	end
-% 	if ~isinf(field_output_every_n_frames)
-% 		field_output = gather(field_output);
-%     end
-%     reset(gpuDevice);
-% end
 
 t2 = etime(clock, t1);
 fprintf(' completed in %.2f secs\n', t2);
