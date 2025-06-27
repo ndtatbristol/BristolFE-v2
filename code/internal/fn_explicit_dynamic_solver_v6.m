@@ -129,14 +129,13 @@ f = zeros(ndf, 1);
 
 switch solver_mode 
     case 'vel at last half time step'
-        B1 = 2 * speye(ndf) - dt * inv_M * C - dt ^ 2 * inv_M * K;
-        B2 = dt * inv_M * C - speye(ndf);
-        B3 = 0;
+        A =  dt ^ 2 * inv_M;
+        B = 2 * speye(ndf) - dt * inv_M * C - dt ^ 2 * inv_M * K;
+        D = dt * inv_M * C - speye(ndf);
     case 'vel at curent time step'
-        B1 = 2 * speye(ndf) - dt ^ 2 * inv_M * K;
-        B2 =    -speye(ndf) + dt / 2 * inv_M * C;
-        B3 =     speye(ndf) + dt / 2 * inv_M * C;
-        % B3 =     spdiags(1 ./ sum(B3).', 0, ndf, ndf); %can invert B3 here but doesn't seem to change speed
+        A = (speye(ndf) + dt / 2 * inv_M * C) \ (dt ^ 2 * inv_M);
+        B = (speye(ndf) + dt / 2 * inv_M * C) \ (2 * speye(ndf) - dt ^ 2 * inv_M * K);
+        D = (speye(ndf) + dt / 2 * inv_M * C) \ (   -speye(ndf) + dt / 2 * inv_M * C);
 end
 
 if use_gpu
@@ -145,19 +144,21 @@ if use_gpu
         diag_M = gpuArray(single(diag_M));
     	u_minus_1 = gpuArray(single(u_minus_1));
     	u_minus_2 = gpuArray(single(u_minus_2));
-        B1 = gpuArray(single(B1));
-        B2 = gpuArray(single(B2));
-        B3 = gpuArray(single(B3));
+        A = gpuArray(single(A));
+        B = gpuArray(single(B));
+        D = gpuArray(single(D));
         f = gpuArray(single(f));
+        forcing_functions = gpuArray(single(forcing_functions));
     else
         inv_M = gpuArray(inv_M);
         diag_M = gpuArray(diag_M);
     	u_minus_1 = gpuArray(u_minus_1);
     	u_minus_2 = gpuArray(u_minus_2);
-        B1 = gpuArray(B1);
-        B2 = gpuArray(B2);
-        B3 = gpuArray(B3);
+        A = gpuArray(A);
+        B = gpuArray(B);
+        D = gpuArray(D);
         f = gpuArray(f);
+        forcing_functions = gpuArray(forcing_functions);
     end
 end
 
@@ -174,10 +175,6 @@ end
 prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');
 prog_dot_ti = prog_dot_ti(2: end);
 
-if strcmpi(solver_precision, 'single')
-end
-
-
 for ti = ti_start:length(time)
     %set force at forcing node equal to excitation signal at this instant
     %in time
@@ -186,14 +183,8 @@ for ti = ti_start:length(time)
     end
 
     %Main calculation!
-    switch solver_mode 
-        case 'vel at last half time step'
-            u =       dt ^ 2 * inv_M * f + B1 * u_minus_1 + B2 * u_minus_2;
-        case 'vel at curent time step'
-            u = B3 \ (dt ^ 2 * inv_M * f + B1 * u_minus_1 + B2 * u_minus_2);
-            % u = B3 * (dt ^ 2 * inv_M * f + B1 * u_minus_1 + B2 * u_minus_2); %use if inverting B3 above
-    end
-       
+    u = A * f + B * u_minus_1 + D * u_minus_2;
+
     %impose displacements
     if ~isempty(disp_indices)
         u(disp_indices) = disp_functions(:, ti);

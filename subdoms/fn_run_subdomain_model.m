@@ -5,6 +5,8 @@ default_options.rx_trans = []; %by default all transducers are also receivers
 default_options.field_output_every_n_frames = inf;
 default_options.use_gpu_if_available = 1;
 default_options.dof_to_use = [];
+default_options.solver_mode = 'vel at curent time step';
+
 fe_options = fn_set_default_fields(fe_options, default_options);
 fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(unique(main.mod.el_typ_i), fe_options.dof_to_use);
 
@@ -44,7 +46,7 @@ for d = fe_options.doms_to_run
 
         %Convert to forces
         [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
-            K_sub, C_sub, M_sub, time_step, bdry_dsps, bdry_lyrs, 'in');
+            K_sub, C_sub, M_sub, time_step, bdry_dsps, bdry_lyrs, 'in', fe_options.solver_mode);
 
         %Create the load step - forcing
         steps{si}.load.frc_nds = bdry_nds(frce_set);
@@ -86,7 +88,7 @@ for d = fe_options.doms_to_run
 
         %Convert to forces
         [frcs, frce_set] = fn_convert_disps_to_forces_v2(...
-            K_sub, C_sub, M_sub, time_step, res{si}.dsps, bdry_lyrs, 'out');
+            K_sub, C_sub, M_sub, time_step, res{si}.dsps, bdry_lyrs, 'out', fe_options.solver_mode);
 
         %Loop over receivers
         for r = fe_options.rx_trans

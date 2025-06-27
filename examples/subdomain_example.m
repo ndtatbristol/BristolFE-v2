@@ -1,5 +1,5 @@
 clearvars -except scripts_to_run
-close all;
+% close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 addpath(genpath('../subdoms'));
@@ -60,7 +60,7 @@ fe_options.time_pts = 8000;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 12;
-safety_factor = 3;
+safety_factor = sqrt(2);
 
 %For animations, set the following to a non-infinite value
 fe_options.field_output_every_n_frames = 40;
