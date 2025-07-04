@@ -24,6 +24,10 @@ time_step = main.inp.time(2) - main.inp.time(1);
 
 %Run the scatterer models
 for d = fe_options.doms_to_run
+    t1 = clock;
+    fn_console_output(sprintf('Executing model for sub-domain %i/%i\n', d, numel(fe_options.doms_to_run)));
+    fn_increment_indent_level;
+
     main.doms{d} = fn_clear_fields(main.doms{d}, 'res', 1, 0);
     % fprintf('      Convolving %i inputs', numel(fe_options.tx_trans));
     for si = 1:numel(fe_options.tx_trans) %si is step counter for FE, one step per transmitting transducer
@@ -107,6 +111,8 @@ for d = fe_options.doms_to_run
             main.doms{d}.res.fmc.time_data(:, k) = main.doms{d}.res.fmc.time_data(:, k) + tmp(:);
         end
     end
+    fn_decrement_indent_level;
+    fn_console_output(sprintf('Sub-domain model executed in %.2f\n\n', etime(clock, t1)));
 end
 
 end

@@ -1,4 +1,8 @@
 function varargout = fn_BristolFE_v2(mod, matls, steps, fe_options)
+%USAGE
+%   res = fn_BristolFE_v2(mod, matls, steps, fe_options)
+%   [res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options)
+%   fe_options = fn_BristolFE_v2([], [], [], fe_options)
 %SUMMARY
 %   Entry function for Bristol FE v2.
 %INPUTS
@@ -11,16 +15,26 @@ function varargout = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %OUTPUTS
 %   res - results from each load step
 %   [mats - global matrices for model]
-%--------------------------------------------------------------------------
+%   fe_options - special case used to obtain options (including defaults)
 
+%--------------------------------------------------------------------------
+%eEtermine whether or not to use GPU if one is available
 default_options.use_gpu_if_available = 1;
-default_options.field_output_every_n_frames = inf;
+%Versions of key functions to use
 default_options.global_matrix_builder_version = 'v5';
 default_options.dynamic_solver_version = 'v6';
+%Whether to calculate velocities at current time step (stable) or last half
+%step (not always stable but maybe faster)
 default_options.solver_mode = 'vel at curent time step';
+%What to output if field output requested
 default_options.field_output_type = 'KE';
-default_options.solver_precision = 'double';
+%--------------------------------------------------------------------------
 fe_options = fn_set_default_fields(fe_options, default_options);
+if isempty(mod)
+    %Special case to get options
+    varargout{1} = fe_options;
+    return
+end
 
 %Check inputs - are all mesh and material details consistent?
 
@@ -73,7 +87,6 @@ for s = 1:numel(steps)
             frcs = [];
         end
         if isfield(steps{s}.load, 'dsps')
-            %[dsp_gi, res{s}.frc_nds, res{s}.frc_dfs, res{s}.valid_appl_dsps] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
             [dsp_gi, ~, ~, res{s}.valid_appl_dsps] = fn_nds_and_dfs_to_gi(steps{s}.load.dsp_nds, steps{s}.load.dsp_dfs, mats.gl_lookup);
             dsps = steps{s}.load.dsps;
             if isfield(steps{1}.load, 'wts')
@@ -87,7 +100,6 @@ for s = 1:numel(steps)
             dsps = [];
         end
         if isfield(steps{s}.mon, 'nds')
-            % [hist_gi, res{s}.dsp_nds, res{s}.dsp_dfs, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.nds, steps{s}.mon.dfs, mats.gl_lookup);
             [hist_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(steps{s}.mon.nds, steps{s}.mon.dfs, mats.gl_lookup);
         else
             hist_gi = [];
@@ -95,9 +107,9 @@ for s = 1:numel(steps)
 
         %Explicit dynamic analysis - (2) run it!
         if numel(steps) > 1
-            fprintf('    (%2i/%2i) ', s, numel(steps));
+            fn_console_output(sprintf('Step %3i/%3i: ', s, numel(steps)))
         else
-            fprintf('    ');
+            fn_console_output('')
         end
         switch fe_options.dynamic_solver_version
             case'v5'

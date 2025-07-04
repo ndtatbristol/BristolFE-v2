@@ -88,8 +88,8 @@ if size(M,1) ~= size(M, 2)
 end
 
 ndf = size(K, 1);
-
-fprintf(['Explicit time marching v6 (GPU = %i, time steps = %i, DOF = %i, ', solver_precision, ') '], use_gpu, numel(time), ndf);
+t1 = clock;
+fn_console_output(sprintf(['Explicit time marching v6 (GPU = %i, time steps = %i, DOF = %i, ', solver_precision, ') '], use_gpu, numel(time), ndf), [], 0);
 dt = time(2) - time(1);
 
 %initialise history and field output variables
@@ -213,11 +213,10 @@ for ti = ti_start:length(time)
     
     %Show how far through calculation is
     if ismember(ti, prog_dot_ti)
-        fprintf('.')
+        fn_console_output('.', [], 0);
     end
 end
 
-t2 = etime(clock, t1);
-fprintf(' completed in %.2f secs\n', t2);
+fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
 
 end

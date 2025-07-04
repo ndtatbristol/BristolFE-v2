@@ -41,6 +41,9 @@ mod.el_mat_i = [mod.el_mat_i; dm_mod.el_mat_i];
 mod.el_abs_i = [mod.el_abs_i; dm_mod.el_abs_i];
 mod.el_typ_i = [mod.el_typ_i; dm_mod.el_typ_i];
 
+%remove unused nodes
+% [nds2, els2, old_nds, new_nds] = fn_remove_unused_nodes(nds, els);
+
 % figure;h = fn_show_geometry(mod, matls, []);
 end
 

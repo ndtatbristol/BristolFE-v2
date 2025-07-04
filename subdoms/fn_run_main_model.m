@@ -105,9 +105,11 @@ for m = 1:numel(main_modes)
 
     switch main_modes{m}
          case {'impulse response', 'field output'}
+            t1 = clock;
+            fn_console_output('Executing pristine model\n');
+            fn_increment_indent_level;
             %Run the model for each transducer (need boundary data whether
             %transmitter or receiver anyway
-            % [fe_res, main.res.mats] = fn_BristolFE_v2(main.mod, main.matls, steps, fe_options);
             [fe_res, main.res.mats] = fn_FE_entry_point(main.mod, main.matls, steps, fe_options);
             
 
@@ -124,15 +126,19 @@ for m = 1:numel(main_modes)
             if strcmp(main_modes{m}, 'field output')
                 main.res = fn_parse_to_movie(main.res, fe_res);
             end
+            fn_decrement_indent_level;
+            fn_console_output(sprintf('Pristine model executed in %.2f\n\n', etime(clock, t1)));
 
         case 'validation'
             for d = fe_options.doms_to_run
+                t1 = clock;
+                fn_console_output(sprintf('Executing validation model for sub-domain %i/%i\n', d, numel(fe_options.doms_to_run)));
+                fn_increment_indent_level;
                 %Create a new model of whole domain containing the scatterer
                 main.doms{d}.val_mod = fn_insert_subdomain_model_into_main(main.mod, main.doms{d}.mod, main.matls);
 
                 %Run the model for each transducer
-                % [fe_res, main.res.mats] = fn_BristolFE_v2(main.doms{d}.val_mod, main.matls, steps, fe_options);
-                [fe_res, main.res.mats] = fn_FE_entry_point(main.doms{d}.val_mod, main.matls, steps, fe_options);
+                fe_res = fn_FE_entry_point(main.doms{d}.val_mod, main.matls, steps, fe_options);
 
                 %Parse the field data for movies if requested
                 if ~isinf(fe_options.field_output_every_n_frames)
@@ -141,8 +147,9 @@ for m = 1:numel(main_modes)
 
                 %Parse the validation FMC results
                 main.doms{d}.val.fmc = fn_parse_to_fmc(main.res.fmc_template, steps, fe_res, main.trans, [], fe_options);
+                fn_decrement_indent_level;
+                fn_console_output(sprintf('Validation model executed in %.2f\n\n', etime(clock, t1)));
             end
-       
     end
 end
 end

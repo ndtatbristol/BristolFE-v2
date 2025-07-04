@@ -1,13 +1,62 @@
 function varargout = fn_pogoFE(mod, matls, steps, fe_options)
-default_options.pogo_path = 'C:\Program Files\Pogo\windows';
-default_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
-default_options.pogo_verbosity = -1;
-default_options.pogo_compression = 0;
-default_options.max_diff_absorbing_levels = 50;
-default_options.solver_precision = 'single';
-fe_options = fn_set_default_fields(fe_options, default_options);
-addpath(genpath(fe_options.pogo_matlab_path));
+%USAGE
+%   res = fn_pogoFE(mod, matls, steps, fe_options)
+%   [res, mats] = fn_pogoFE(mod, matls, steps, fe_options)
+%   fe_options = fn_pogoFE([], [], [], fe_options)
+%SUMMARY
+%   Converts a Matlab model definition, mod, into a Pogo input file,
+%   executes Pogo, reads the Pogo results back into res, and optionally
+%   reads the Pogo global matrices into mats if two output arguments are
+%   requested. This is intended to work as a straight alternative to
+%   fn_BristolFE_v2 and can hence be called from fn_FE_entry_point function
+%   with fe_options.solver = 'pogo'.
+%INPUTS
+%   mod - description of mesh including nodes, elements, material
+%   indices, and possibly absorbing indices if absorbing layers are used.
+%   matls - description of materials used in mod
+%   steps - description of one or more (use cell array) steps in which
+%       loads are applied, including details of the load and what is
+%       recorded
+%OUTPUTS
+%   res - results from each load step
+%   [mats - global matrices for model]
+%   fe_options - special case used to obtain options (including defaults)
 
+%--------------------------------------------------------------------------
+%FE_OPTIONS meanings and defaults
+%Path to where pogo binaries and Pogo Matlab code are
+default_options.pogo_path = 'C:\Program Files\Pogo\windows\new version';
+default_options.pogo_matlab_path = 'C:\Program Files\Pogo\matlab';
+%Level of pogo output to Matlab console (-1 = none)
+default_options.pogo_verbosity = -1;
+%Whether to allow Pogo to do compression by approximating values for
+%similar elements
+default_options.pogo_compression = 0;
+%How many different absorbing materials Pogo should use for absorbing 
+%boundary layers. In BristolFE, absorption is added at runtime on a
+%per-element basis rather than specifying materials with different
+%absorption. To get same effect in pogo, set 
+%fn_options.pogo_number_of_diff_absorbing_matls = inf in order to use a different
+%material for each unique absorbing level in BristolFE model.
+default_options.pogo_number_of_diff_absorbing_matls = inf;
+default_options.dof_to_use
+%--------------------------------------------------------------------------
+fe_options = fn_set_default_fields(fe_options, default_options);
+if size(mod.nds, 2) == 2
+    %Pogo 2D models do not support out-of-plane DoF
+    fe_options.dof_to_use(fe_options.dof_to_use == 3) =[];
+end
+if any(fe_options.dof_to_use == 4)
+    error('Pogo does not support pressure as a DoF')
+end
+if isempty(mod)
+    %Special case to get options
+    fe_options.solver_mode = 'vel at curent time step'; %This is not an option in Pogo, it is how it is.
+    varargout{1} = fe_options;
+    return
+end
+
+%Set the Pogo command line options
 if fe_options.pogo_verbosity < 0
     verb_flag = ' -o >NUL';
 else
@@ -22,15 +71,30 @@ if isinf(fe_options.field_output_every_n_frames)
     solver_flags = [solver_flags, ' --setFieldSaveOff'];
 end
 
+%Generate Pogo input file
+t1 = clock;
+fn_console_output('Generating input file ...');
+addpath(genpath(fe_options.pogo_matlab_path));
 pogo_model = fn_convert_to_pogo_model(mod, matls, steps, fe_options);
-
-%Save model
-fname = 'pogoPW';
+fname = 'pogoPW2';
 dummy_fname = [fname, '.txt'];
 warning('off', 'all');
 savePogoInp(fname, pogo_model);
 warning('on', 'all');
+fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
 
+%Request global matrices if two output arguments
+if nargout > 1
+    solver_flags = [solver_flags, ' --outputAllStiffToMatrix'];
+end
+
+%Blocking
+t1 = clock;
+fn_console_output('Blocking ...');
+system(['"', fe_options.pogo_path, filesep, 'pogoBlock" ',fname, '.pogo-inp', verb_flag]);
+fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
+
+%Decide whether to use single or double Pogo solver
 if pogo_model.nDims == 3
     pogo_solver = 'pogoSolve3D';
 else
@@ -41,11 +105,26 @@ else
             pogo_solver = 'pogoSolve64';
     end
 end
-%Blocking
-system(['"', fe_options.pogo_path, filesep, 'pogoBlock" ',fname, '.pogo-inp', verb_flag]);
-%Solving
-system(['"', fe_options.pogo_path, filesep, pogo_solver, '" ',fname, solver_flags, verb_flag]);
 
+%Solving
+t1 = clock;
+fn_console_output('Solving ...');
+system(['"', fe_options.pogo_path, filesep, pogo_solver, '" ',fname, solver_flags, verb_flag]);
+fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
+
+%Extract global matrices from file if requested
+if nargout > 1
+    t1 = clock;
+    fn_console_output('Extracting global matrices ...');
+    info_fname  = 'generalInfo.csv';K_fname = 'k.csv';M_fname = 'm.csv';C_fname = 'c.csv';
+    mats = fn_read_pogo_global_matrix_values_from_files(info_fname, K_fname, C_fname, M_fname);
+    varargout{2} = mats;
+    fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
+end
+
+%Extract results
+t1 = clock;
+fn_console_output('Extracting results ...');
 for s = 1:numel(steps)
     if numel(steps) > 1
         fn = sprintf([fname,'-%i'], s);
@@ -54,50 +133,15 @@ for s = 1:numel(steps)
     end
     h = loadPogoHist(fn);
     res{s}.dsps = h.sets(1).MeasureSet1.histTraces';
+    if nargout > 1
+        [res{s}.dsp_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(h.sets(s).MeasureSet1.nodeNums, h.sets(s).MeasureSet1.nodeDofs, mats.gl_lookup);
+    else
+        res{s}.valid_mon_dsps = h.sets(s).MeasureSet1.nodeNums == steps{s}.mon.nds & h.sets(s).MeasureSet1.nodeDofs == steps{s}.mon.dfs;
+    end
     delete([fn, '.*']);
 end
-
 varargout{1} = res;
-
-if nargout > 1
-    mats = [];
-    if isempty(fe_options.gl_mat_nds)
-        %default is all nodes
-        fe_options.gl_mat_nds = 1:size(mod.nds, 1);
-    end
-    no_nds = size(pogo_model.nodePos, 2);
-    total_df = no_nds * pogo_model.nDofPerNode;
-    mats.M = spalloc(total_df, total_df, no_nds * pogo_model.nDofPerNode);
-    mats.C = spalloc(total_df, total_df, no_nds * pogo_model.nDofPerNode);
-    mats.K = spalloc(total_df, total_df, no_nds * pogo_model.nDofPerNode);
-    df = 1:pogo_model.nDofPerNode;
-    gl_nd_i = ones(pogo_model.nDofPerNode, 1) * (1:no_nds);
-    gl_nd_i = gl_nd_i(:);
-    df = 1:pogo_model.nDofPerNode;
-    gl_df_i = df' * ones(1, no_nds);
-    gl_df_i = gl_df_i(:);
-    mats.gl_lookup = fn_create_fast_lookup(gl_nd_i, gl_df_i, 0, 0);
-    %get stiffness matrix
-    steps = steps(1);
-    steps{1}.load.time = [0, 1];
-    steps{1}.load.frcs = [0, 0];
-    pogo_model = fn_convert_to_pogo_model(mod, matls, steps, fe_options);
-    savePogoInp(fname, pogo_model);
-    % % keyboard
-    system(['"', fe_options.pogo_path, filesep, 'pogoBlock" ',fname, '.pogo-inp', verb_flag]);
-    % system(['"', fe_options.pogo_path, filesep, pogo_solver, '" ',fname, solver_flags, verb_flag]);
-    for i = 1:numel(fe_options.gl_mat_nds)
-        system(['"', fe_options.pogo_path, filesep, pogo_solver, '" ',fname, sprintf(' --printStiff %i ', fe_options.gl_mat_nds(i)), '-o --setFieldSaveOff --setVerbosity 0 > ', dummy_fname]);
-        [K, C, M, gl_i] = fn_scrape_global_matrix_values(dummy_fname, mats.gl_lookup);
-        %these need to be put (actually added) into actual global matrices
-        %mats.M etc
-        mats.K(gl_i, gl_i) = mats.K(gl_i, gl_i) + K;
-        mats.M(gl_i, gl_i) = mats.M(gl_i, gl_i) + M;
-        mats.C(gl_i, gl_i) = mats.C(gl_i, gl_i) + C;
-        disp(i)
-    end
-    varargout{2} = mats;
-end
+fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
 end
 
 
@@ -141,10 +185,8 @@ end
 %one requires a separate material definition)
 if isfield(mod, 'el_abs_i')
     unique_abs_levels = unique(mod.el_abs_i);
-    if fe_options.max_diff_absorbing_levels < numel(unique_abs_levels)
-        %pogo_abs_levels = interp1(unique_abs_levels, linspace(0, 1, numel(unique_abs_levels)), linspace(0, 1, fe_options.max_diff_absorbing_levels));
-        pogo_abs_levels = linspace(0, 1, fe_options.max_diff_absorbing_levels + 1); %plus one because first one is zero
-        % pogo_abs_levels = pogo_abs_levels(2:end);
+    if fe_options.pogo_number_of_diff_absorbing_matls < numel(unique_abs_levels)
+        pogo_abs_levels = linspace(0, 1, fe_options.pogo_number_of_diff_absorbing_matls + 1); %plus one because first one is zero
     else
         pogo_abs_levels = unique_abs_levels;
     end
@@ -153,7 +195,7 @@ if isfield(mod, 'el_abs_i')
     new_mat_ind = numel(matls) + 1; %indices of new materials to be added with damping
     no_matls_initially = numel(matls);
     for n = 1:no_matls_initially
-        %max_diff_absorbing_levels
+        %pogo_number_of_diff_absorbing_matls
         if all(mod.el_abs_i(mod.el_mat_i == n) == 0)
             %no absorbing elements for this material, move onto next one
             continue
@@ -219,7 +261,7 @@ for n = 1:numel(steps)
     model.measSets{1}.name = 'MeasureSet1'; %- string name for the set
     model.measSets{1}.isDofGroup = 0; %- do we refer to DoF groups or do we use nodal values (0 or 1)
     %if 0:
-    model.measSets{1}.measNodes =steps{1}.mon.nds;  %- nodes to take history measurements from
+    model.measSets{1}.measNodes = steps{1}.mon.nds;  %- nodes to take history measurements from
     model.measSets{1}.measDof = steps{1}.mon.dfs; %- degrees of freedom to take history measurements from
     %if 1:
     % model.measSets{n}.dofGroup - which Dof groups
@@ -253,4 +295,17 @@ pogo_matl.paramValues = [D(find(triu(ones(size(D)))))', rho];%- the parameters m
 if alpha > 0
     pogo_matl.paramValues = [pogo_matl.paramValues, alpha];
 end
+end
+
+%following is cutpaste from BristolFE - therefore should be separate
+%function!
+function [gi, nds, dfs, valid] = fn_nds_and_dfs_to_gi(nds, dfs, gl_lookup)
+gi = zeros(numel(nds), 1);
+for i = 1:numel(nds)
+    gi(i) = gl_lookup(nds(i), dfs(i));
+end
+valid = gi > 0;
+gi = gi(valid);
+nds = nds(valid);
+dfs = dfs(valid);
 end

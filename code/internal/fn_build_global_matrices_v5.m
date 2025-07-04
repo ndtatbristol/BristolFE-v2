@@ -44,7 +44,7 @@ if ~isvector(matls)
     error('Materials structure must be a vector');
 end
 
-fprintf('    Global matrix builder v5 (nodes = %i, elements = %i, ', size(nds, 1), size(els, 1));
+fn_console_output(sprintf('Global matrix builder v5 (nodes = %i, elements = %i, ', size(nds, 1), size(els, 1)));
 t1 = clock;
 
 %find unique element types, max DoF per element, and actual DoFs in use
@@ -163,6 +163,6 @@ if fe_options.interface_damping_factor
     C = fn_add_interface_damping(els, el_typ_i, K, C, M, gl_lookup, fe_options.interface_damping_factor);
 end
 
-fprintf('DOF = %i) .......... completed in %.2f secs\n', size(K, 1), etime(clock, t1));
+fn_console_output(sprintf('DOF = %i) .......... completed in %.2f secs\n', size(K, 1), etime(clock, t1)), [], 0);
 
 end

@@ -16,7 +16,7 @@ if use_gpu_if_present
     end
 end
 
-fprintf('    Convolving %i signals with %i pts (GPU = %i)', prod(size(f)) / size(f,dim), size(f,dim), use_gpu);
+fn_console_output(sprintf('Convolving %i signals with %i pts (GPU = %i) ... ', prod(size(f)) / size(f,dim), size(f,dim), use_gpu));
 t1 = clock;
 
 fft_pts = size(f, dim) * 2;
@@ -38,6 +38,5 @@ if use_gpu
     reset(gpuDevice);
 end
 
-t2 = etime(clock, t1);
-fprintf(' .......... completed in %.2f secs\n', t2);
+fn_console_output(sprintf('completed in %.2f secs\n', etime(clock, t1)), [], 0);
 end
