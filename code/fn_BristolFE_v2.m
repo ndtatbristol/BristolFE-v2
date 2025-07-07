@@ -2,7 +2,7 @@ function varargout = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %USAGE
 %   res = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %   [res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options)
-%   fe_options = fn_BristolFE_v2([], [], [], fe_options)
+%   fe_options = fn_BristolFE_v2(mod, matls, [], fe_options)
 %SUMMARY
 %   Entry function for Bristol FE v2.
 %INPUTS
@@ -30,7 +30,7 @@ default_options.solver_mode = 'vel at curent time step';
 default_options.field_output_type = 'KE';
 %--------------------------------------------------------------------------
 fe_options = fn_set_default_fields(fe_options, default_options);
-if isempty(mod)
+if isempty(steps)
     %Special case to get options
     varargout{1} = fe_options;
     return

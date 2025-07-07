@@ -78,7 +78,7 @@ end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-res = fn_BristolFE_v2(mod, matls, steps, fe_options);
+res = fn_FE_entry_point(mod, matls, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS

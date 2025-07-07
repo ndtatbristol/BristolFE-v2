@@ -29,8 +29,8 @@ bdry_pts = [
 abs_bdry_pts = [
     abs_bdry_thickness, abs_bdry_thickness
     model_size - abs_bdry_thickness, abs_bdry_thickness
-    model_size - abs_bdry_thickness, model_size - abs_bdry_thickness
-    abs_bdry_thickness, model_size - abs_bdry_thickness];
+    model_size - abs_bdry_thickness, model_size
+    abs_bdry_thickness, model_size];
 
 
 %Define array
@@ -42,19 +42,18 @@ centre = [model_size / 2, array_depth];
 %Details of input signal
 centre_freq = 5e6;
 no_cycles = 4;
-max_time = 20e-6;
-fe_options.time_pts = 2000;
+fe_options.time_pts = 1000;
+% fe_options.solver = 'pogo';
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
-safety_factor = 3;
 
 %The default option is field_output_every_n_frames = inf, which means there
 %is no field output. Set to a finite value to get a field output. Note that
 %in subdomain models, requesting field output causes the main model to be
 %executed twice for each transducer element, once to generate the transfer
 %functions and once to generate the field output.
-fe_options.field_output_every_n_frames = 10;
+fe_options.field_output_every_n_frames = inf;10;
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 
@@ -63,7 +62,7 @@ el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 main.mod = fn_isometric_structured_mesh(bdry_pts, el_size);
 
 %Timestep
-main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size, safety_factor);
+main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 main.mod.design_centre_freq = centre_freq;
 
 
@@ -142,12 +141,15 @@ end
 figure;
 i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
 mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
-plot(main.doms{1}.res.fmc.time, sum(main.doms{1}.res.fmc.time_data, 2) / mv, 'k');
+plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2) / mv), 'k', 'LineWidth', 2);
 hold on;
-plot(main.doms{1}.val.fmc.time, sum(main.doms{1}.val.fmc.time_data, 2) / mv, 'b');
-plot(main.doms{1}.res.fmc.time, (sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'r');
+plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2) / mv), 'g:', 'LineWidth', 2);
+plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
 ylim([-1,1]);
-legend('Sub-domain method', 'Validation', 'Difference');
+yyaxis right
+plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
+ylim([-60, 0]);
+legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
 
 
 

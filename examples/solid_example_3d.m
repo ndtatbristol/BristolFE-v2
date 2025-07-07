@@ -1,4 +1,4 @@
-clearvars -except scripts_to_run
+clear all
 close all;
 restoredefaultpath;
 addpath(genpath('../code'));
@@ -6,45 +6,46 @@ addpath(genpath('../code'));
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
-matls(1).rho = 1000;
-%For fluids, stiffness 'matrix' D is just the scalar bulk modulus,
-%calcualted here from ultrasonic velocity (1500) and density
-matls(1).D = 1500 ^ 2 * matls(1).rho;
-matls(1).col = hsv2rgb([0.6,0.5,0.8]);
-matls(1).name = 'Water';
-matls(1).el_typ = 'AC2D3'; %AC2D3 must be the element type for a fluid
+%Material properties
+matls(1).rho = 8900; %Density
+%3x3 or 6x6 stiffness matrix of material. Here it is isotropic material and
+%fn_isotropic_plane_strain_stiffness_matrix(E, v) converts Young's modulus
+%and Poisson's ratio into appropriate 3x3 matrix
+matls(1).D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
+matls(1).col = hsv2rgb([2/3,0,0.80]); %Colour for display
+matls(1).name = 'Steel';
+matls(1).el_typ = 'C3D4'; %C3D4 linear tetragedral
 
-%Define shape of model - a right angle triangle in this example
+%Define shape of model
 model_size = 10e-3;
-
-abs_bdry_thickness = 1e-3;
-
+%boundary bts
 bdry_pts = [
     0, 0 
     model_size, 0 
     model_size, model_size
-    0, model_size * 0.8];
+    0, model_size * 1.0];
 
 %Define a line along which sources will be placed to excite waves
 src_end_pts = [
     0.3 * model_size, 0
     0.7 * model_size, 0];
 
-src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
+src_dir = 2; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 
 %Details of input signal
 centre_freq = 5e6;
 no_cycles = 4;
-max_time = 20e-6;
+max_time = 10e-6;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
 
 %The default option is field_output_every_n_frames = inf, which means there
 %is no field output. Set to a finite value to get a field output.
-fe_options.field_output_every_n_frames = 10;
+fe_options.field_output_every_n_frames = 5;
 
 %--------------------------------------------------------------------------
+%PREPARE THE MESH
 
 %Work out element size
 el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
@@ -69,28 +70,18 @@ steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycle
 steps{1}.mon.nds = steps{1}.load.frc_nds;
 steps{1}.mon.dfs = steps{1}.load.frc_dfs;
 
-abs_bdry_pts = [
-    abs_bdry_thickness, 0
-    model_size - abs_bdry_thickness, 0
-    model_size - abs_bdry_thickness, 2 * model_size
-    abs_bdry_thickness, 2 * model_size];
-
-%Define the absorbing layer
-mod = fn_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
-
 %Show the mesh
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
- figure;
+    figure;
     display_options.draw_elements = 1;
     display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
     display_options.node_sets_to_plot(1).col = 'r.';
     h_patch = fn_show_geometry(mod, matls, display_options);
 end
-
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-res = fn_FE_entry_point(mod, matls, steps, fe_options);
+[res, mats] = fn_FE_entry_point(mod, matls, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
@@ -101,8 +92,8 @@ figure;
 plot(steps{1}.load.time, sum(res{1}.dsps));
 xlabel('Time (s)')
 
+%Animate result
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
-    %Animate result
     figure;
     display_options.draw_elements = 0;
     h_patch = fn_show_geometry(mod, matls, display_options);

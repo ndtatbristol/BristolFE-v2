@@ -80,7 +80,7 @@ end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-[res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options);
+[res, mats] = fn_FE_entry_point(mod, matls, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS

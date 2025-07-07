@@ -5,12 +5,30 @@ addpath(genpath('../code'));
 addpath(genpath('../subdoms'));
 
 %--------------------------------------------------------------------------
-%DEFINE THE PROBLEM
+%DEFINE KEY MODELLING PARAMETERS
 
+%Details of input signal
+centre_freq = 5e6;
+no_cycles = 5;
+
+%Other stuff
+els_per_wavelength = 8;
+fe_options.time_pts = 2000;
+fe_options.field_output_every_n_frames = inf; %use this one to suppress animations
+%fe_options.field_output_every_n_frames = 20;
+
+%DEFINE THE GEOMETRY PARAMETRICALLY
+model_size = 10e-3;
+water_thickness = 3e-3;
 abs_bdry_thickness = 1e-3;
+scatterer_size = 1e-3;
+subdomain_size = scatterer_size + 0.1e-3;
+scatterer_depth = 4e-3;
+src_size = 3.5e-3;
+src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 
+%DEFINE MATERIALS
 steel_matl_i = 1;
-%Material properties
 main.matls(steel_matl_i).rho = 8900; %Density
 main.matls(steel_matl_i).D = fn_isotropic_stiffness_matrix(210e9, 0.3);
 main.matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]); %Colour for display
@@ -26,8 +44,10 @@ main.matls(water_matl_i).col = hsv2rgb([0.6,0.5,0.8]);
 main.matls(water_matl_i).name = 'Water';
 main.matls(water_matl_i).el_typ = 'AC2D3'; %AC2D3 must be the element type for a fluid
 
+%--------------------------------------------------------------------------
+%CONVERT PARAMETRIC DESCRIPTION INTO MODEL GEOMETRY
+
 %Define shape of model
-model_size = 10e-3;
 bdry_pts = [
     0, 0
     model_size, 0
@@ -36,43 +56,28 @@ bdry_pts = [
 
 %Define region that will be water
 water_bdry_pts = [
-    0, 0
+    0,          0
     model_size, 0
-    model_size, 0.4 * model_size
-    0, 0.6 * model_size];
+    model_size, water_thickness
+    0,          water_thickness];
 
 %Define start of absorbing boundary region and its thickness
 abs_bdry_pts = [
-    abs_bdry_thickness, abs_bdry_thickness
-    model_size - abs_bdry_thickness, abs_bdry_thickness
-    model_size - abs_bdry_thickness, model_size - abs_bdry_thickness
-    abs_bdry_thickness, model_size - abs_bdry_thickness];
+    abs_bdry_thickness,                 abs_bdry_thickness
+    model_size - abs_bdry_thickness,    abs_bdry_thickness
+    model_size - abs_bdry_thickness,    model_size
+    abs_bdry_thickness,                 model_size];
 
-%Define a line along which sources will be placed to excite waves
-src_end_pts = [0.3, 0.1; 0.7, 0.1] * model_size;
-src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 
-%Details of input signal
-centre_freq = 5e6;
-no_cycles = 4;
-max_time = 20e-6;
-fe_options.time_pts = 8000;
-
-%Elements per wavelength (higher = more accurate and higher computational cost)
-els_per_wavelength = 12;
-safety_factor = sqrt(2);
-
-%For animations, set the following to a non-infinite value
-fe_options.field_output_every_n_frames = inf;40;
 %--------------------------------------------------------------------------
-%PREPARE THE MESH
+%CONVERT MODEL GEOMETRY INTO MESH
 
 %Work out element size and Create the nodes and elements of the mesh
 el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 main.mod = fn_isometric_structured_mesh(bdry_pts, el_size);
 
 %Timestep
-main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size, safety_factor);
+main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 main.mod.design_centre_freq = centre_freq;
 
 
@@ -89,16 +94,19 @@ main.mod = fn_add_fluid_solid_interface_els(main.mod, main.matls);
 main.mod = fn_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
 
 %Define transducers
+src_end_pts = [ model_size / 2 - src_size / 2, abs_bdry_thickness
+                model_size / 2 + src_size / 2, abs_bdry_thickness];
+
 [main.trans{1}.nds, s] = fn_find_nodes_on_line(main.mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
 main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * 4;
 
-%Create a subdomain in the middle with a hole in surface as scatterr
-subdomain_size = model_size / 10;
-scatterer_size = model_size / 10 * 0.8;
-inner_bdry = [-1,-1;-1,1;1,1;1,-1] / 2 * subdomain_size + [1, 1] * model_size / 2;
-scat_pts = [-1,0;0,1;1,0;0,-1] / 2 * scatterer_size + [1, 1] * model_size / 2;
+%Create a subdomain in the middle with a hole in surface as scatterer
+scatterer_centre = [model_size / 2, water_thickness + scatterer_depth];
+inner_bdry = [-1,-1;-1,1;1,1;1,-1] / 2 * subdomain_size + scatterer_centre;
+scat_pts =   fn_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
+
 main.doms{1}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdry_thickness);
-main.doms{1}.mod = fn_add_scatterer(main.doms{1}.mod, main.matls, scat_pts, water_matl_i);
+main.doms{1}.mod = fn_add_scatterer(main.doms{1}.mod, main.matls, scat_pts, 0);
 
 %Show the mesh
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
@@ -146,9 +154,12 @@ end
 figure;
 i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
 mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
-plot(main.doms{1}.res.fmc.time, sum(main.doms{1}.res.fmc.time_data, 2) / mv, 'k');
+plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
 hold on;
-plot(main.doms{1}.val.fmc.time, sum(main.doms{1}.val.fmc.time_data, 2) / mv, 'b');
-plot(main.doms{1}.res.fmc.time, (sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'r');
+plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
+plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
 ylim([-1,1]);
-legend('Sub-domain method', 'Validation', 'Difference');
+yyaxis right
+plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
+ylim([-60, 0]);
+legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');

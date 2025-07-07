@@ -2,7 +2,7 @@ function varargout = fn_pogoFE(mod, matls, steps, fe_options)
 %USAGE
 %   res = fn_pogoFE(mod, matls, steps, fe_options)
 %   [res, mats] = fn_pogoFE(mod, matls, steps, fe_options)
-%   fe_options = fn_pogoFE([], [], [], fe_options)
+%   fe_options = fn_pogoFE(mod, matls, [], fe_options)
 %SUMMARY
 %   Converts a Matlab model definition, mod, into a Pogo input file,
 %   executes Pogo, reads the Pogo results back into res, and optionally
@@ -39,7 +39,6 @@ default_options.pogo_compression = 0;
 %fn_options.pogo_number_of_diff_absorbing_matls = inf in order to use a different
 %material for each unique absorbing level in BristolFE model.
 default_options.pogo_number_of_diff_absorbing_matls = inf;
-default_options.dof_to_use
 %--------------------------------------------------------------------------
 fe_options = fn_set_default_fields(fe_options, default_options);
 if size(mod.nds, 2) == 2
@@ -49,7 +48,7 @@ end
 if any(fe_options.dof_to_use == 4)
     error('Pogo does not support pressure as a DoF')
 end
-if isempty(mod)
+if isempty(steps)
     %Special case to get options
     fe_options.solver_mode = 'vel at curent time step'; %This is not an option in Pogo, it is how it is.
     varargout{1} = fe_options;
@@ -134,9 +133,9 @@ for s = 1:numel(steps)
     h = loadPogoHist(fn);
     res{s}.dsps = h.sets(1).MeasureSet1.histTraces';
     if nargout > 1
-        [res{s}.dsp_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(h.sets(s).MeasureSet1.nodeNums, h.sets(s).MeasureSet1.nodeDofs, mats.gl_lookup);
+        [res{s}.dsp_gi, ~, ~, res{s}.valid_mon_dsps] = fn_nds_and_dfs_to_gi(h.sets(1).MeasureSet1.nodeNums, h.sets(1).MeasureSet1.nodeDofs, mats.gl_lookup);
     else
-        res{s}.valid_mon_dsps = h.sets(s).MeasureSet1.nodeNums == steps{s}.mon.nds & h.sets(s).MeasureSet1.nodeDofs == steps{s}.mon.dfs;
+        res{s}.valid_mon_dsps = h.sets(1).MeasureSet1.nodeNums == steps{s}.mon.nds & h.sets(1).MeasureSet1.nodeDofs == steps{s}.mon.dfs;
     end
     delete([fn, '.*']);
 end

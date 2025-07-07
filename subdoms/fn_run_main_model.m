@@ -32,6 +32,8 @@ end
 
 
 fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(unique(main.mod.el_typ_i), fe_options.dof_to_use);
+fe_options = fn_FE_entry_point(main.mod, main.matls, [], fe_options);%this call is necessary in order get the actual DoFs available from chosen solver
+
 
 %Input signal and time-axis used for all simulations
 if ~isempty(fe_options.max_time)
