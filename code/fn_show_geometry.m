@@ -5,7 +5,7 @@ function h_patch = fn_show_geometry(mod, matls, options)
 %   animations if desired.
 
 % addpath(genpath('..'));
-default_options.offset = [0, 0];
+default_options.offset = 0;
 default_options.scale = 1;
 default_options.norm_value = []; %empty to normalise to max
 

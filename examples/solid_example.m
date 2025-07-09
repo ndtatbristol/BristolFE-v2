@@ -3,6 +3,8 @@ close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 
+% fe_options.solver = 'pogo'; %You can try using Pogo as the solver instead
+% of BristolFE if you have it installed.
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
@@ -14,7 +16,7 @@ matls(1).rho = 8900; %Density
 matls(1).D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
 matls(1).col = hsv2rgb([2/3,0,0.80]); %Colour for display
 matls(1).name = 'Steel';
-matls(1).el_typ = 'CPE3'; %CPE3 must be the element type for a solid
+matls(1).el_typ = 'C3D8R'; %CPE3 must be the element type for a solid
 
 %Define shape of model
 model_size = 10e-3;

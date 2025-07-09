@@ -12,7 +12,8 @@ function node = fn_find_node_at_point(nodes, p, tol)
 
 %--------------------------------------------------------------------------
 
-r = sqrt((nodes(:,1) - p(1)) .^ 2 + (nodes(:,2) - p(2)) .^ 2);
+% r = sqrt((nodes(:,1) - p(1)) .^ 2 + (nodes(:,2) - p(2)) .^ 2);
+r = sqrt(sum((nodes - p) .^ 2, 2));
 [rmin, node] = min(r);
 if rmin > tol
     node = 0;

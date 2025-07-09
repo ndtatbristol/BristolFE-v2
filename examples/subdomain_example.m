@@ -7,6 +7,8 @@ addpath(genpath('../subdoms'));
 %--------------------------------------------------------------------------
 %DEFINE KEY MODELLING PARAMETERS
 
+show_geom_only = 1;
+
 %Details of input signal
 centre_freq = 5e6;
 no_cycles = 5;
@@ -109,12 +111,13 @@ main.doms{1}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdr
 main.doms{1}.mod = fn_add_scatterer(main.doms{1}.mod, main.matls, scat_pts, 0);
 
 %Show the mesh
-if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing
     figure;
     display_options.draw_elements = 0;
     display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
     display_options.node_sets_to_plot(1).col = 'r.';
     h_patch = fn_show_geometry_with_subdomains(main, display_options);
+    return
 end
 %--------------------------------------------------------------------------
 

@@ -75,7 +75,7 @@ t1 = clock;
 fn_console_output('Generating input file ...');
 addpath(genpath(fe_options.pogo_matlab_path));
 pogo_model = fn_convert_to_pogo_model(mod, matls, steps, fe_options);
-fname = 'pogoPW2';
+fname = 'pogoPW3';
 dummy_fname = [fname, '.txt'];
 warning('off', 'all');
 savePogoInp(fname, pogo_model);
@@ -90,11 +90,9 @@ end
 %Blocking
 t1 = clock;
 fn_console_output('Blocking ...');
-system(['"', fe_options.pogo_path, filesep, 'pogoBlock" ',fname, '.pogo-inp', verb_flag]);
-fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
-
 %Decide whether to use single or double Pogo solver
 if pogo_model.nDims == 3
+    pogo_blocker = 'pogoBlockGreedy3d';
     pogo_solver = 'pogoSolve3D';
 else
     switch fe_options.solver_precision
@@ -103,11 +101,16 @@ else
         case 'double'
             pogo_solver = 'pogoSolve64';
     end
+    pogo_blocker = 'pogoBlock';
 end
+
+system(['"', fe_options.pogo_path, filesep, pogo_blocker, '" ',fname, '.pogo-inp', verb_flag]);
+fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
+
 
 %Solving
 t1 = clock;
-fn_console_output('Solving ...');
+fn_console_output(sprintf('Solving (%i DoFs) ...', size(pogo_model.nodePos, 2) * pogo_model.nDofPerNode));
 system(['"', fe_options.pogo_path, filesep, pogo_solver, '" ',fname, solver_flags, verb_flag]);
 fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
 
