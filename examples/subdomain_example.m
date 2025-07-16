@@ -7,7 +7,7 @@ addpath(genpath('../subdoms'));
 %--------------------------------------------------------------------------
 %DEFINE KEY MODELLING PARAMETERS
 
-show_geom_only = 1;
+show_geom_only = 0;
 
 %Details of input signal
 centre_freq = 5e6;
