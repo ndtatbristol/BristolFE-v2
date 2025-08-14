@@ -9,14 +9,18 @@ addpath(genpath('../code'));
 %DEFINE THE PROBLEM
 
 %Material properties
-matls(1).rho = 8900; %Density
+steel_matl_i = 1;
+matls{steel_matl_i}.rho = 8900; %Density
 %3x3 or 6x6 stiffness matrix of material. Here it is isotropic material and
 %fn_isotropic_plane_strain_stiffness_matrix(E, v) converts Young's modulus
 %and Poisson's ratio into appropriate 3x3 matrix
-matls(1).D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
-matls(1).col = hsv2rgb([2/3,0,0.80]); %Colour for display
-matls(1).name = 'Steel';
-matls(1).el_typ = 'CPE3'; %CPE3 must be the element type for a solid
+matls{steel_matl_i}.D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
+matls{steel_matl_i}.col = hsv2rgb([2/3,0,0.80]); %Colour for display
+matls{steel_matl_i}.name = 'Steel';
+
+%Element type to use
+el_typ_solid = 'CPE3'; 
+
 
 %Define shape of model
 model_size = 10e-3;
@@ -52,7 +56,13 @@ fe_options.field_output_every_n_frames = 5;
 el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
-mod = fn_isometric_structured_mesh(bdry_pts, el_size);
+mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size);
+
+%Associate elements with materials and element types
+mod.el_mat_i(:) = steel_matl_i;
+mod.el_types = {el_typ_solid};
+mod.el_typ_i(:) = find(strcmp(mod.el_types, el_typ_solid));
+
 
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run

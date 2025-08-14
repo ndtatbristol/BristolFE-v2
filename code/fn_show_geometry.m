@@ -13,7 +13,10 @@ options = fn_set_default_fields(options, default_options);
 
 options.matl_cols = zeros(numel(matls), 3);
 for i = 1:numel(matls)
-    options.matl_cols(i, :) = matls(i).col;
+    if isempty(matls{i})
+        continue
+    end
+    options.matl_cols(i, :) = matls{i}.col;
 end
 
 if isfield(mod, 'el_mat_i')
@@ -31,5 +34,6 @@ end
 
 % h_patch = fn_display_result_v2(mod.nds * options.scale + options.offset, mod.els, options);
 h_patch = fn_display_result_v3(mod, options);
+drawnow;
 end
 

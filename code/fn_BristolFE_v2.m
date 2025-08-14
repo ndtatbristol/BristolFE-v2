@@ -40,8 +40,9 @@ end
 
 %If mod.el_typ_i not specified at this point, generate it based on matls
 if ~isfield(mod, 'el_typ_i')
-    mod.el_typ_i = {matls(mod.el_mat_i).el_typ};
-    mod.el_typ_i = mod.el_typ_i(:);
+    % mod.el_typ_i = {matls{mod.el_mat_i}.el_typ};
+    mod.el_typ_i = cellfun(@(s) s.('el_typ'), matls(mod.el_mat_i), 'UniformOutput', false);
+    % mod.el_typ_i = mod.el_typ_i(:);
 end
 
 if ~isfield(mod, 'el_abs_i')
@@ -54,7 +55,7 @@ switch fe_options.global_matrix_builder_version
     case 'v4'
         [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v4(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);
     otherwise %v5 is default
-        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);
+        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, mod.el_types, fe_options);
 end
 
 if isempty(steps)

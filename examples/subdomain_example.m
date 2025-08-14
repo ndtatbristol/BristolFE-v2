@@ -30,21 +30,26 @@ src_size = 3.5e-3;
 src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 
 %DEFINE MATERIALS
-steel_matl_i = 1;
-main.matls(steel_matl_i).rho = 8900; %Density
-main.matls(steel_matl_i).D = fn_isotropic_stiffness_matrix(210e9, 0.3);
-main.matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]); %Colour for display
-main.matls(steel_matl_i).name = 'Steel';
-main.matls(steel_matl_i).el_typ = 'CPE3'; %CPE3 must be the element type for a solid
 
+%Steel
+steel_matl_i = 1;
+main.matls{steel_matl_i}.rho = 8900; %Density
+main.matls{steel_matl_i}.D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
+main.matls{steel_matl_i}.col = hsv2rgb([2/3,0,0.80]); %Colour for display
+main.matls{steel_matl_i}.name = 'Steel';
+
+%Water
 water_matl_i = 2;
-main.matls(water_matl_i).rho = 1000;
+main.matls{water_matl_i}.rho = 1000;
 %For fluids, stiffness 'matrix' D is just the scalar bulk modulus,
 %calculated here from ultrasonic velocity (1500) and density (1000)
-main.matls(water_matl_i).D = 1500 ^ 2 * 1000;
-main.matls(water_matl_i).col = hsv2rgb([0.6,0.5,0.8]);
-main.matls(water_matl_i).name = 'Water';
-main.matls(water_matl_i).el_typ = 'AC2D3'; %AC2D3 must be the element type for a fluid
+main.matls{water_matl_i}.D = 1500 ^ 2 * 1000;
+main.matls{water_matl_i}.col = hsv2rgb([0.6,0.5,0.8]);
+main.matls{water_matl_i}.name = 'Water'; 
+
+%Element types to use
+el_typ_solid = 'CPE3'; 
+el_typ_fluid = 'AC2D3'; 
 
 %--------------------------------------------------------------------------
 %CONVERT PARAMETRIC DESCRIPTION INTO MODEL GEOMETRY
@@ -76,21 +81,29 @@ abs_bdry_pts = [
 
 %Work out element size and Create the nodes and elements of the mesh
 el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
-main.mod = fn_isometric_structured_mesh(bdry_pts, el_size);
+main.mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size);
+main.mod.el_types = {el_typ_solid, el_typ_fluid};
+
+%First set material of all elements to steel ...
+main.mod.el_mat_i(:) = steel_matl_i;
+main.mod.el_typ_i(:) = find(strcmp(main.mod.el_types, el_typ_solid));
+
+%... then set elements inside water boundary material to water
+els_in_water = fn_elements_in_region(main.mod, water_bdry_pts);
+main.mod.el_mat_i(els_in_water) = water_matl_i;
+main.mod.el_typ_i(els_in_water) = find(strcmp(main.mod.el_types, el_typ_fluid));
+
+%Add interface elements - this is crucial otherwise there will be no
+%coupling between fluid and solid
+main.mod = fn_add_fluid_solid_interface_els(main.mod);
+
+%Set source direction
+src_dir = 4;
+
 
 %Timestep
 main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 main.mod.design_centre_freq = centre_freq;
-
-
-%First set material of all elements to steel then set elements inside water
-%boundary material to water
-main.mod.el_mat_i(:) = steel_matl_i;
-main.mod = fn_set_els_inside_bdry_to_mat(main.mod, water_bdry_pts, water_matl_i);
-
-%Add interface elements - this is crucial otherwise there will be no
-%coupling between fluid and solid
-main.mod = fn_add_fluid_solid_interface_els(main.mod, main.matls);
 
 %Define the absorbing layer
 main.mod = fn_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
@@ -100,7 +113,7 @@ src_end_pts = [ model_size / 2 - src_size / 2, abs_bdry_thickness
                 model_size / 2 + src_size / 2, abs_bdry_thickness];
 
 [main.trans{1}.nds, s] = fn_find_nodes_on_line(main.mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
-main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * 4;
+main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * src_dir;
 
 %Create a subdomain in the middle with a hole in surface as scatterer
 scatterer_centre = [model_size / 2, water_thickness + scatterer_depth];

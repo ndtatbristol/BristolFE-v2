@@ -6,13 +6,16 @@ addpath(genpath('../code'));
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
-matls(1).rho = 1000;
+water_matl_i = 2;
+matls{water_matl_i}.rho = 1000;
 %For fluids, stiffness 'matrix' D is just the scalar bulk modulus,
 %calcualted here from ultrasonic velocity (1500) and density
-matls(1).D = 1500 ^ 2 * matls(1).rho;
-matls(1).col = hsv2rgb([0.6,0.5,0.8]);
-matls(1).name = 'Water';
-matls(1).el_typ = 'AC2D3'; %AC2D3 must be the element type for a fluid
+matls{water_matl_i}.D = 1500 ^ 2 * matls{water_matl_i}.rho;
+matls{water_matl_i}.col = hsv2rgb([0.6,0.5,0.8]);
+matls{water_matl_i}.name = 'Water';
+
+%Element type to use
+el_typ_fluid = 'AC2D3'; 
 
 %Define shape of model - a right angle triangle in this example
 model_size = 10e-3;
@@ -47,7 +50,13 @@ fe_options.field_output_every_n_frames = 10;
 el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
-mod = fn_isometric_structured_mesh(bdry_pts, el_size);
+mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size);
+
+%Associate elements with materials and element types
+mod.el_mat_i(:) = water_matl_i;
+mod.el_types = {el_typ_fluid};
+mod.el_typ_i(:) =  find(strcmp(mod.el_types, el_typ_fluid));
+
 
 %Identify nodes along the source line to say where the loading will be
 %when FE model is run

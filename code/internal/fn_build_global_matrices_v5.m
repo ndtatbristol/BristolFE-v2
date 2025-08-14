@@ -1,4 +1,4 @@
-function [K, C, M, gl_lookup] = fn_build_global_matrices_v5(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, fe_options)
+function [K, C, M, gl_lookup] = fn_build_global_matrices_v5(nds, els, el_mat_i, el_abs_i, el_typ_i, matls, el_types, fe_options)
 %SUMMARY
 %   Creates global matrices from mesh definitions
 %INPUTS
@@ -10,7 +10,7 @@ function [K, C, M, gl_lookup] = fn_build_global_matrices_v5(nds, els, el_mat_i, 
 %   el_mat_i - m x 1 vector of element material indices (which refer to
 %   materials in 'matls' parameter
 %   el_abs_i - m x 1 vector of element absorption level from 0 to 1
-%   el_typ_i - m x 1 cell array of element types
+%   el_typ_i - m x 1 vector of element type indices
 %   matls - p x 1 structured variable of materials with fields
 %       matls(i).name - string giving name of material
 %       matls(i).rho - density of material
@@ -34,23 +34,24 @@ default_options.interface_damping_factor = 0;
 
 fe_options = fn_set_default_fields(fe_options, default_options);
 
-if ~isvector(el_mat_i)
-    error('Element materials must be a vector');
+%Input checks
+no_els = size(els, 1);
+if length(el_mat_i) ~= no_els
+    error('Length of element material indices vector must equal number of elements');
 end
-if length(el_mat_i) ~= size(els, 1)
-    error('Length of element materials vector must equal number of elements');
+if length(el_typ_i) ~= no_els
+    error('Length of element type indices vector must equal number of elements');
 end
-if ~isvector(matls)
-    error('Materials structure must be a vector');
+if length(el_abs_i) ~= no_els
+    error('Length of element absorbing indices vector must equal number of elements');
 end
 
 fn_console_output(sprintf('Global matrix builder v5 (nodes = %i, elements = %i, ', size(nds, 1), size(els, 1)));
 t1 = clock;
 
 %find unique element types, max DoF per element, and actual DoFs in use
-unique_typs = unique(el_typ_i);
+unique_typs = el_types(unique(el_typ_i));
 [unique_df, max_el_df] = fn_find_dof_in_use_and_max_dof_per_el(unique_typs, fe_options.dof_to_use);
-% df_per_nd = numel(un_df);
 max_df = max(unique_df);
 
 %Prepare global matrices
@@ -63,31 +64,29 @@ Kvec = zeros(total_el_dfs, 1);
 Mvec = zeros(total_el_dfs, 1);
 Cvec = zeros(total_el_dfs, 1);
 
-
-
 %Loop over unique element types
 i1 = 1;
 for t = 1:numel(unique_typs)
     fn_el_mats = str2func(['fn_el_', unique_typs{t}]);
-    el_i = strcmp(el_typ_i, unique_typs{t});
+    el_i = el_typ_i == t; %logical indices of elements of this type
 
     %Find unique element matls for this type
     un_mat = unique(el_mat_i(el_i));
     
     %Loop over unique matls for this element type
     for m = 1:numel(un_mat)
-        el_i2 = el_mat_i == un_mat(m) & el_i;
+        el_i2 = (el_mat_i == un_mat(m)) & el_i;
 
         if ~any(el_i2)
             %No elements of this type and material so skip to next material
             continue
         end
         if un_mat(m) > 0 
-            D = matls(un_mat(m)).D;
-            if isfield(matls(un_mat(m)), 'density') %deal with legacy naming
-                rho = matls(un_mat(m)).density;
+            D = matls{un_mat(m)}.D;
+            if isfield(matls{un_mat(m)}, 'density') %deal with legacy naming
+                rho = matls{un_mat(m)}.density;
             else
-                rho = matls(un_mat(m)).rho;
+                rho = matls{un_mat(m)}.rho;
             end
         else
             D = 0; %For elements with no material e.g. interface
@@ -158,10 +157,10 @@ gl_dofs = tmp(:);
 %global matrix index associated with node and DOF).
 gl_lookup = fn_create_fast_lookup(gl_nds, gl_dofs, no_nds, 0);
 
-%Add interface damping if requested
-if fe_options.interface_damping_factor
-    C = fn_add_interface_damping(els, el_typ_i, K, C, M, gl_lookup, fe_options.interface_damping_factor);
-end
+% %Add interface damping if requested
+% if fe_options.interface_damping_factor
+%     C = fn_add_interface_damping(els, el_typ_i, K, C, M, gl_lookup, fe_options.interface_damping_factor);
+% end
 
 fn_console_output(sprintf('DOF = %i) .......... completed in %.2f secs\n', size(K, 1), etime(clock, t1)), [], 0);
 
