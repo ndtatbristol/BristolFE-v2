@@ -4,28 +4,31 @@ restoredefaultpath;
 addpath(genpath('../code'));
 addpath(genpath('../subdoms'));
 
+show_geom_only = 0; %Set to 1 to just show geometry without running model
+
+
 %--------------------------------------------------------------------------
 %DEFINE KEY MODELLING PARAMETERS
 
-show_geom_only = 0;
+
 
 %Details of input signal
 centre_freq = 5e6;
 no_cycles = 5;
 
 %Other stuff
-els_per_wavelength = 12;
+els_per_wavelength = 8;
 fe_options.time_pts = 2000;
 fe_options.field_output_every_n_frames = inf; %use this one to suppress animations
-%fe_options.field_output_every_n_frames = 20;
+fe_options.field_output_every_n_frames = 20;
 
 %DEFINE THE GEOMETRY PARAMETRICALLY
 model_size = 10e-3;
-water_thickness = 3e-3;
+water_thickness = 7e-3;
 abs_bdry_thickness = 1e-3;
 scatterer_size = 1e-3;
 subdomain_size = scatterer_size + 0.1e-3;
-scatterer_depth = 4e-3;
+scatterer_depth = 0e-3;
 src_size = 3.5e-3;
 src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 
@@ -130,6 +133,7 @@ if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running al
     display_options.node_sets_to_plot(1).nd = main.trans{1}.nds;
     display_options.node_sets_to_plot(1).col = 'r.';
     h_patch = fn_show_geometry_with_subdomains(main, display_options);
+    drawnow
     return
 end
 %--------------------------------------------------------------------------
@@ -141,13 +145,15 @@ main = fn_run_main_model(main, fe_options);
 main = fn_run_subdomain_model(main, fe_options);
 
 %Animate results if requested
-if ~isinf(fe_options.field_output_every_n_frames)
-    figure;
-    anim_options.repeat_n_times = 1;
-    anim_options.db_range = [-40, 0];
-    anim_options.pause_value = 0.001;
-    h_patches = fn_show_geometry_with_subdomains(main, anim_options);
-    fn_run_subdomain_animations(main, h_patches, anim_options);
+if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    if ~isinf(fe_options.field_output_every_n_frames)
+        figure;
+        anim_options.repeat_n_times = 1;
+        anim_options.db_range = [-40, 0];
+        anim_options.pause_value = 0.001;
+        h_patches = fn_show_geometry_with_subdomains(main, anim_options);
+        fn_run_subdomain_animations(main, h_patches, anim_options);
+    end
 end
 
 %Run validation model

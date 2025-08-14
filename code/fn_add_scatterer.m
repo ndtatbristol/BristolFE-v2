@@ -7,8 +7,9 @@ function mod = fn_add_scatterer(mod, matls, scat_pts, scat_matl)
 interface_el_name = 'ASI2D2';
 
 %Remove interface elements if there are any
-els_in_use = ~strcmp(mod.el_typ_i, interface_el_name);
-[~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(els_in_use, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
+mod = fn_remove_fluid_solid_interface_els(mod);
+% els_in_use = ~strcmp(mod.el_typ_i, interface_el_name);
+% [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(els_in_use, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
 
 
 if scat_matl > 0
@@ -23,7 +24,7 @@ else
 end
 
 %Add interface elements if needed
-mod = fn_add_fluid_solid_interface_els(mod, matls);
+mod = fn_add_fluid_solid_interface_els(mod);
 
 %Set flag on which elements are within domain
 mod.int_el_i = fn_elements_in_region(mod, mod.inner_bndry_pts);

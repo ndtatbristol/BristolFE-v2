@@ -11,11 +11,15 @@ end
 default_options.interface_el_name = 'ASI2D2';
 default_options.fluid_el_names = {'AC2D3'};
 default_options.solid_el_names = {'CPE3'};
-default_options.rayleigh_damping_level = 0;
 options = fn_set_default_fields(options, default_options);
 
-mod.el_types{end + 1} = options.interface_el_name;
+%Add interface element to list of element types if not already there
+if ~any(strcmp(mod.el_types, options.interface_el_name))
+    mod.el_types{end + 1} = options.interface_el_name;
+end
+%Get interface element index
 interface_el_i = find(strcmp(mod.el_types, options.interface_el_name));
+%Get lists of indices of fluid and solid element types
 solid_el_i = find(ismember(mod.el_types, options.solid_el_names));
 fluid_el_i = find(ismember(mod.el_types, options.fluid_el_names));
 
@@ -73,8 +77,6 @@ mod.el_typ_i = [mod.el_typ_i; repmat(interface_el_i, [no_int_els, 1])];
 mod.el_mat_i = [mod.el_mat_i; zeros(no_int_els, 1)]; %interface elements have no material
 
 %Extend absorbing indices
-% if isfield(mod, 'el_abs_i')
-    mod.el_abs_i = [mod.el_abs_i; zeros(no_int_els, 1)];
-% end
+mod.el_abs_i = [mod.el_abs_i; zeros(no_int_els, 1)];
 
 end

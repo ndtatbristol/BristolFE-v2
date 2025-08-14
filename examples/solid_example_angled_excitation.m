@@ -10,6 +10,7 @@ addpath(genpath('../code'));
 % src_dir = 'shear'; 
 src_dir = 'normal'; 
 
+show_geom_only = 0; %Set to 1 to just show geometry without running model
 
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
@@ -101,12 +102,14 @@ steps{1}.mon.nds = steps{1}.load.frc_nds;
 steps{1}.mon.dfs = steps{1}.load.frc_dfs;
 
 %Show the mesh
-if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing
     figure; 
-    display_options.draw_elements = 1;
+    display_options.draw_elements = 0;
     display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
     display_options.node_sets_to_plot(1).col = 'r.';
     h_patch = fn_show_geometry(mod, matls, display_options);
+    drawnow
+    return
 end
 
 %--------------------------------------------------------------------------

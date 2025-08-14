@@ -4,18 +4,23 @@ restoredefaultpath;
 addpath(genpath('../code'));
 addpath(genpath('../subdoms'));
 
+show_geom_only = 0; %Set to 1 to just show geometry without running model
+
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
 abs_bdry_thickness = 2e-3;
 
+%Steel
 steel_matl_i = 1;
-%Material properties
-main.matls(steel_matl_i).rho = 8900; %Density
-main.matls(steel_matl_i).D = fn_isotropic_stiffness_matrix(210e9, 0.3);
-main.matls(steel_matl_i).col = hsv2rgb([2/3,0,0.80]); %Colour for display
-main.matls(steel_matl_i).name = 'Steel';
-main.matls(steel_matl_i).el_typ = 'CPE3'; %CPE3 must be the element type for a solid
+main.matls{steel_matl_i}.rho = 8900; %Density
+main.matls{steel_matl_i}.D = fn_isotropic_stiffness_matrix(210e9, 0.3); 
+main.matls{steel_matl_i}.col = hsv2rgb([2/3,0,0.80]); %Colour for display
+main.matls{steel_matl_i}.name = 'Steel';
+
+%Element types to use
+el_typ_solid = 'CPE3'; 
+el_typ_fluid = 'AC2D3'; 
 
 %Define shape of model
 model_size = 20e-3;
@@ -53,20 +58,23 @@ els_per_wavelength = 10;
 %in subdomain models, requesting field output causes the main model to be
 %executed twice for each transducer element, once to generate the transfer
 %functions and once to generate the field output.
-fe_options.field_output_every_n_frames = inf;10;
+fe_options.field_output_every_n_frames = inf;
+% fe_options.field_output_every_n_frames = 10;
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 
-%Work out element size and Create the nodes and elements of the mesh
+%Work out element size
 el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
-main.mod = fn_isometric_structured_mesh(bdry_pts, el_size);
+
+%Create the nodes and elements of the mesh
+main.mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size);
+main.mod.el_types = {el_typ_solid};
+main.mod.el_mat_i(:) = steel_matl_i;
+main.mod.el_typ_i(:) = find(strcmp(main.mod.el_types, el_typ_solid));
 
 %Timestep
 main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 main.mod.design_centre_freq = centre_freq;
-
-
-main.mod.el_mat_i(:) = steel_matl_i;
 
 %Define the absorbing layer
 main.mod = fn_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
@@ -90,8 +98,7 @@ main.doms{1}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdr
 main.doms{1}.mod = fn_add_scatterer(main.doms{1}.mod, main.matls, scat_pts, 0);
 
 %Show the mesh
-if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
-
+if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing
     figure;
     display_options.draw_elements = 0;
     col = 'rgbmkyc';
@@ -100,6 +107,8 @@ if ~exist('scripts_to_run') %suppress graphics when running all scripts for test
         display_options.node_sets_to_plot(t).col = [col(rem(t, numel(col)) + 1), '.'];
     end
     h_patch = fn_show_geometry_with_subdomains(main, display_options);
+    drawnow
+    return
 end
 %--------------------------------------------------------------------------
 
