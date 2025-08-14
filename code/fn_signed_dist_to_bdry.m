@@ -1,4 +1,4 @@
-function d = fn_signed_dist_to_bdry(pts, bdry_vtcs, varargin)
+function [d, varargout] = fn_signed_dist_to_bdry(pts, bdry_vtcs, varargin)
 %SUMMARY
 %   Returns signed (positive exterior) shortest distance of point(s) to 
 %   boundary surface described by vertices of edges (2D) or triangular 
@@ -6,6 +6,7 @@ function d = fn_signed_dist_to_bdry(pts, bdry_vtcs, varargin)
 %   matrix of point coordinates.
 %USAGE
 %   d = fn_signed_dist_to_bdry(pts, bdry_vtcs, [bdry_fcs, interior_pt])
+%   [d, nearest_pts] = fn_signed_dist_to_bdry(pts, bdry_vtcs, [bdry_fcs, interior_pt])
 %AUTHOR
 %   Paul Wilcox (2025)
 %INPUTS
@@ -13,23 +14,26 @@ function d = fn_signed_dist_to_bdry(pts, bdry_vtcs, varargin)
 %   bdry_vtcs - n_nds x n_dim list of boundary vertex coordinates
 %   [bdry_fcs - n_fcs x {2 or 3} list of vertex indices for each edge (2D)
 %   or triangular facet (3D). This argument is optional for 2D cases; if
-%   omitted it is assumed that bdry_nds describe a closed polygon in order 
+%   empty it is assumed that bdry_nds describe a closed polygon in order 
 %   so bdry_fcs = [1, 2; 2, 3; 3, 4; ... ; n_nds - 1, n_nds; n_nds, 1].
-%   This argument is required for 3D cases.
+%   This argument is required for 3D cases. Note that the order of nodes
+%   for each facet does not have to be consistent; the function will force
+%   them to be consistent (i.e. so adjacent elements have consistent
+%   interior/exterior definitions), but the interior / exterior will be 
+%   random if an interior point is not specified.
 %   [interior_pt] - 1 x n_dim coordinates of point inside boundary surface,
-%   which is used to determine correct overall sign of d. If not specified,
-%   it is assumed that each edge defiend by nodes [A, B] has exterior on RHS of
-%   vector AB (2D) or a facet defined by nodes [A, B, C] with surface 
-%   normal calculated as cross product of vectors AB and AC is outwards. If 
-%   interior_pt is specified, the vertex ordering of edges or facets 
-%   doesn't matter (this function will make them self-consistent and the 
-%   position of the interior point will be used to determine the overall 
-%   sign of the result (interior = negative). Note that if interior point
-%   is not specified, care must be taken to order nodes of each facet
-%   correctly otherwise erratic behaviour will be obtained.
+%   which is used to determine correct overall sign of d. If boundary is 2D
+%   closed surface, the signed distance will have the correct sign anyway,
+%   even if interior_pt is not specified. However, if the boundary is a 2D 
+%   open surface or any 3D surface then the sign of the distance will be 
+%   random unless interior_pt is specified.
 %OUTPUTS
 %   d - n_pts x 1 signed distance of each point to nearest point on 
 %   boundary where sign is negative (interior) or positive (exterior).
+%   [nearest_pts - n_pts x n_dims matrix of coordinates of nearest point on
+%   boundary associated with each point]
+%   [norm_vecs - n_pts x n_dims matrix of unit vectors of boundary surface 
+%   normal at each nearest_pt]
 %NOTES
 %   Formulated to be efficient for checking large numbers of points (i.e.
 %   n_pts is large) rather than a large number of edges / facets
@@ -64,7 +68,13 @@ switch n_dims
         if ~isempty(bdry_fcs) && size(bdry_fcs, 2) ~= 2
             error('If specified, bdry_fcs mus be n_fcs x 2 for 2D problems')
         end
-        d = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        if nargout == 1
+            d = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        elseif nargout == 2
+            [d, varargout{1}] = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        elseif nargout == 3
+            [d, varargout{1}, varargout{2}] = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        end
     case 3
         if isempty(bdry_fcs)
             error('3D problems require bdry_fcs to be specified')
@@ -72,7 +82,14 @@ switch n_dims
         if size(bdry_fcs) ~= 3
             error('bdry_fcs must be n_fcs x 3 for 3D problems')
         end
-        d = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        if nargout == 1
+            d = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        elseif nargout == 2
+            [d, varargout{1}] = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        elseif nargout == 3
+            [d, varargout{1}, varargout{2}] = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
+        end
+            
 end
 
 end

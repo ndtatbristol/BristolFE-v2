@@ -95,13 +95,17 @@ dt = time(2) - time(1);
 %initialise history and field output variables
 if isempty(history_indices)
     history_output = [];
+    hist_output_requested = 0;
 else
     history_output = zeros(length(history_indices), length(time), solver_precision);
+    hist_output_requested = 1;
 end
 
 if isempty(disp_indices)
+    displacement_input = 0;
     force_output = [];
 else
+    displacement_input = 1;
     force_output = zeros(length(disp_indices), length(time), solver_precision);
     tmp = disp_functions;
     tmp = [zeros(size(disp_functions, 1), 2), disp_functions];
@@ -110,10 +114,14 @@ else
 end
 
 if ~isinf(field_output_every_n_frames)
+    field_output_requested = 1;
     field_output_ti = 1:field_output_every_n_frames:length(time);
+    field_output_at_this_time = zeros(size(time));
+    field_output_at_this_time(field_output_ti) = 1:length(field_output_ti);
     field_output = zeros(ndf, length(field_output_ti), solver_precision);
     field_output_time = zeros(1, length(field_output_ti));
 else
+    field_output_requested = 0;
     field_output_ti = [];
     field_output = [];
     field_output_time = [];
@@ -122,6 +130,7 @@ end
 diag_M = spdiags(sum(M).', 0, ndf, ndf);
 inv_M = spdiags(1 ./ sum(M).', 0, ndf, ndf);
 
+u = zeros(ndf, 1);
 u_minus_1 = zeros(ndf, 1);
 u_minus_2 = zeros(ndf, 1);
 
@@ -140,14 +149,19 @@ end
 
 if use_gpu
     if strcmpi(solver_precision, 'single')
-    	u_minus_1 = gpuArray(single(u_minus_1));
+    	u = gpuArray(single(u));
+        u_minus_1 = gpuArray(single(u_minus_1));
     	u_minus_2 = gpuArray(single(u_minus_2));
         A = gpuArray(single(A));
         B = gpuArray(single(B));
         D = gpuArray(single(D));
         f = gpuArray(single(f));
         forcing_functions = gpuArray(single(forcing_functions));
+        forcing_indices = gpuArray(single(forcing_indices));
+        history_indices = gpuArray(single(history_indices));
+        history_output = gpuArray(single(history_output));
     else
+        u = gpuArray(u);
     	u_minus_1 = gpuArray(u_minus_1);
     	u_minus_2 = gpuArray(u_minus_2);
         A = gpuArray(A);
@@ -155,6 +169,9 @@ if use_gpu
         D = gpuArray(D);
         f = gpuArray(f);
         forcing_functions = gpuArray(forcing_functions);
+        forcing_indices = gpuArray(forcing_indices);
+        history_indices = gpuArray(history_indices);
+        history_output = gpuArray(history_output);
     end
 end
 
@@ -170,12 +187,8 @@ end
 
 prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');
 prog_dot_ti = prog_dot_ti(2: end);
-
-% f = sparse(ndf, numel(time));
-% if size(forcing_functions,1) == 1
-%     f(forcing_indices, :) = ones(numel(forcing_indices), 1) * forcing_functions;
-% end
-% Aft = (A * f)';
+progress_output_at_this_time = zeros(size(time));
+progress_output_at_this_time(prog_dot_ti) = 1;
 
 for ti = ti_start:length(time)
     %set force at forcing node equal to excitation signal at this instant in time
@@ -183,22 +196,22 @@ for ti = ti_start:length(time)
 
     %Main calculation!
     u = A * f + B * u_minus_1 + D * u_minus_2;
-    % u = full(Aft(ti, :))' + B * u_minus_1 + D * u_minus_2;
 
     %impose displacements
-    if ~isempty(disp_indices)
+    if displacement_input
         u(disp_indices) = disp_functions(:, ti);
         force_output(:, ti) = diag_M(disp_indices, disp_indices) * accn(:, ti) + K(disp_indices, :) * u_previous;
     end
 
     %history output
-    if ~isempty(history_indices)
+    if hist_output_requested
         history_output(:, ti) = u(history_indices);
     end
     
     %field output
-    [tmp, fi] = ismember(ti, field_output_ti);
-    if tmp
+    % [tmp, fi] = ismember(ti, field_output_ti);
+    if field_output_requested && field_output_at_this_time(ti) > 0
+        fi = field_output_at_this_time(ti);
         field_output_time(fi) = time(ti);
         if field_output_is_vel
             field_output(:, fi) = (u - u_minus_1) / dt;
@@ -212,11 +225,15 @@ for ti = ti_start:length(time)
     u_minus_1 = u;
     
     %Show how far through calculation is
-    if ismember(ti, prog_dot_ti)
+    if progress_output_at_this_time(ti) 
         fn_console_output('.', [], 0);
     end
 end
 
 fn_console_output(sprintf(' completed in %.2f secs\n', etime(clock, t1)), [], 0);
 
+history_output = gather(history_output);
+field_output = gather(field_output);
+force_output = gather(force_output);
+field_output_time = gather(field_output_time);
 end

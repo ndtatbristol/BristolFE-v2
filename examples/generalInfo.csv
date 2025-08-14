@@ -1,0 +1,4 @@
+dt,7.55929e-09,
+ndof,2,
+dofs,ux,uy,
+Info,Everything is one indexed. Row and column values are ndof*(node-1) + dof + 1.

@@ -14,7 +14,7 @@ centre_freq = 5e6;
 no_cycles = 5;
 
 %Other stuff
-els_per_wavelength = 8;
+els_per_wavelength = 12;
 fe_options.time_pts = 2000;
 fe_options.field_output_every_n_frames = inf; %use this one to suppress animations
 %fe_options.field_output_every_n_frames = 20;

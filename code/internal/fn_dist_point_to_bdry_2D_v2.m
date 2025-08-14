@@ -1,9 +1,11 @@
-function d = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt)
+function [d, varargout] = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt)
 %SUMMARY
 %   Returns signed (positive exterior) shortest distance of point(s) to 
 %   boundary surface described by vertices of triangular facets
 %USAGE
 %   d = fn_dist_point_to_bdry_2D_v2(pts, bdry_nds, bdry_fcs, interior_pt)
+%   [d, nearest_pts] = fn_dist_point_to_bdry_2D_v2(pts, bdry_nds, bdry_fcs, interior_pt)
+%   [d, nearest_pts, norm_vecs] = fn_dist_point_to_bdry_2D_v2(pts, bdry_nds, bdry_fcs, interior_pt)
 %AUTHOR
 %   Paul Wilcox (2025)
 %INPUTS
@@ -20,6 +22,10 @@ function d = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt)
 %OUTPUTS
 %   d - n_pts x 1 signed distance of each point to nearest point on 
 %   boundary where sign is negative (interior) or positive (exterior).
+%   [nearest_pts - n_pts x 2 matrix of coordinates of nearest point on
+%   boundary associated with each point]
+%   [norm_vecs - n_pts x 2 matrix of unit vectors of boundary surface 
+%   normal at each nearest_pt]
 %NOTES
 %   Formulated to be efficient for checking large numbers of points (i.e.
 %   n_pts is large) rather than a large number of facets
@@ -27,6 +33,7 @@ function d = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt)
 
 n_pts = size(pts, 1);
 n_nds = size(bdry_vtcs, 1);
+n_dims = 2;
 
 if isempty(bdry_fcs)
     bdry_fcs = [1:n_nds; [2:n_nds, 1]]';
@@ -93,6 +100,12 @@ nd_normals = nd_normals ./ sqrt(sum(nd_normals .^ 2, 2));
 %effective normal direction.
 
 d = ones(n_pts, 1) * inf;
+if nargout > 1
+    nearest_pts = zeros(n_pts, n_dims);
+end
+if nargout > 2
+    norm_vecs = zeros(n_pts, n_dims);
+end
 
 %Vertices
 nds = bdry_vtcs(unique(bdry_fcs(:)), :);
@@ -101,7 +114,19 @@ for i = 1:n_nds
     dps = sign(sum(vec .* nd_normals(i,:), 2));
     dps(dps == 0) = 1; %Force sign to be +/1 1, never zero
     r_nds = fn_dist_point_to_point(pts, nds(i, :)) .* dps;
-    d = min(d, r_nds, 'ComparisonMethod', 'abs');
+    
+    j = abs(r_nds) < abs(d);
+    d(j) = r_nds(j);
+    if nargout > 1
+        for k = 1:n_dims
+            nearest_pts(j, k) = nds(i, k);
+        end
+    end
+    if nargout > 2
+        for k = 1:n_dims
+            norm_vecs(j, k) = nd_normals(i, k);
+        end
+    end
 end
 
 %Faces
@@ -111,11 +136,27 @@ for i = 1:n_fcs
         bdry_vtcs(bdry_fcs(i, 2), :));
 
     r_fcs(~above) = inf;
-    vec = pts - (bdry_vtcs(bdry_fcs(i, 1), :) + ...
-        (bdry_vtcs(bdry_fcs(i, 2), :) - bdry_vtcs(bdry_fcs(i, 1), :)) .* alpha);
+    nearest_fc_pts = bdry_vtcs(bdry_fcs(i, 2), :) + ...
+        (bdry_vtcs(bdry_fcs(i, 1), :) - bdry_vtcs(bdry_fcs(i, 2), :)) .* alpha;
+    vec = pts - nearest_fc_pts;
     dps = sign(sum(vec .* fc_normals(i,:), 2));
     dps(dps == 0) = 1; %Force sign to be +/1 1, never zero
     r_fcs = r_fcs .* dps;
+
+    j = abs(r_fcs) < abs(d);
+    d(j) = r_fcs(j);
+    if nargout > 1
+        for k = 1:n_dims
+            nearest_pts(j, k) = nearest_fc_pts(j, k);
+        end
+    end
+    if nargout > 2
+        for k = 1:n_dims
+            norm_vecs(j, k) = fc_normals(i, k);
+        end
+    end
+
+    
     d = min(d, r_fcs, 'ComparisonMethod', 'abs');
 end
 
@@ -124,6 +165,13 @@ if ~isempty(interior_pt)
         d = -d;
     end
     d = d(1:end - 1);
+end
+
+if nargout > 1
+    varargout{1} = nearest_pts;
+end
+if nargout > 2
+    varargout{2} = norm_vecs;
 end
 
 end

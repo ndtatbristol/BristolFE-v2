@@ -1,4 +1,4 @@
-function d = fn_dist_point_to_bdry_3D(pts, bdry_nds, bdry_fcs, interior_pt)
+function [d, varargout] = fn_dist_point_to_bdry_3D(pts, bdry_nds, bdry_fcs, interior_pt)
 %SUMMARY
 %   Returns signed (positive exterior) shortest distance of point(s) to 
 %   boundary surface described by vertices of triangular facets
@@ -12,12 +12,7 @@ function d = fn_dist_point_to_bdry_3D(pts, bdry_nds, bdry_fcs, interior_pt)
 %   bdry_fcs - n_fcs x 3 list of vertex indices for each triangular facet
 %   interior_pt - [] or 1 x 3 coordinates of point inside boundary surface,
 %   which is used to determine correct overall sign of d. If empty,
-%   it is assumed that each facet is specified with consistent
-%   counter-clockwise vertex ordering so that surface normal calculated on
-%   cross product of AB and AC is always outwards. If interior_pt is
-%   specified, the vertex ordering doesn't matter (this function will make
-%   them self-consistent and the position of the interior point will be
-%   used to determine the overall sign of the result (interior = negative)
+%   sign of d will be random.
 %OUTPUTS
 %   d - n_pts x 1 signed distance of each point to nearest point on 
 %   boundary where sign is negative (interior) or positive (exterior).
@@ -29,51 +24,59 @@ function d = fn_dist_point_to_bdry_3D(pts, bdry_nds, bdry_fcs, interior_pt)
 n_pts = size(pts, 1);
 n_fcs = size(bdry_fcs, 1);
 n_nds = size(bdry_nds, 1);
+n_dims = 3;
+n_fcs_per_facet = 3;
 
-all_eds = [bdry_fcs(:,1), bdry_fcs(:,2)
-    bdry_fcs(:,2), bdry_fcs(:,3)
-    bdry_fcs(:,3), bdry_fcs(:,1)];
-all_ed_fcs = repmat((1:n_fcs)', [3, 1]);
+% all_eds = [bdry_fcs(:,1), bdry_fcs(:,2)
+%     bdry_fcs(:,2), bdry_fcs(:,3)
+%     bdry_fcs(:,3), bdry_fcs(:,1)];
+% all_ed_fcs = repmat((1:n_fcs)', [3, 1]);
+% 
+% %First, get node ordering for each facet consistent
+% 
+% %if edge appears twice, node order for one of the faces it appears in
+% %should be reversed
+% [~,ia,ic] = unique(sort(all_eds, 2), 'rows');
+% occs = accumarray(ic,1);
+% if any(occs) > 2
+%     error('More than two facets at same edge')
+% end
+% occs = find(occs > 1);
+% for i = 1:numel(occs)
+%     j = find(ic == occs(i));
+%     if all(all_eds(j(1), :) == all_eds(j(2), :))
+%         %Flip order of nodes in associated face
+%         flip_face = all_ed_fcs(j(1));
+%         bdry_fcs(flip_face,:) = fliplr(bdry_fcs(flip_face,:));
+%         all_eds(j(1), :) = fliplr(all_eds(j(1), :));
+%     end
+% end
 
+%Get node ordering for each facet consistent
+[bdry_fcs, all_eds, all_ed_fcs] = fn_consistent_facet_nodes(bdry_fcs);
+
+%Stick interior point on end of list of test points if specified (it will
+%be removed at end of function)
 if ~isempty(interior_pt)
-    %In this case, no assumptions are made about order of nodes on each facet
-    %defining outward surface normal and they are first shuffled so that
-    %they are at least consistently inwards (or outwards)
-    %After procedure complete, sign is flipped to get interior_pt at
-    %negative distance from surface
-
-    %if edge appears twice, node order for one of the faces it appears in
-    %should be reversed
-    [~,ia,ic] = unique(sort(all_eds, 2), 'rows');
-    occs = accumarray(ic,1);
-    if any(occs) > 2
-        error('More than two facets at same edge')
-    end
-    occs = find(occs > 1);
-    for i = 1:numel(occs)
-        j = find(ic == occs(i));
-        if all(all_eds(j(1), :) == all_eds(j(2), :))
-            %Flip order of nodes in associated face
-            flip_face = all_ed_fcs(j(1));
-            bdry_fcs(flip_face,:) = fliplr(bdry_fcs(flip_face,:));
-            all_eds(j(1), :) = fliplr(all_eds(j(1), :));
-        end
-    end
     pts = [pts; interior_pt];
     n_pts = n_pts + 1;
 end
 
 
-%First get the unit normal vector for each face and the internal
+%Get the unit normal vector for each face and the internal
 %angle of each vertex
-fc_normals = zeros(n_fcs, 3);
-fc_vertex_weights = zeros(n_fcs, 3);
+fc_normals = zeros(n_fcs, n_dims);
+fc_vertex_weights = zeros(n_fcs, n_fcs_per_facet);
 fc_vertices = reshape(bdry_nds(bdry_fcs(:), :), [size(bdry_fcs), 3]);
 for v1 = 1:3
-    v2 = mod(v1    , 3) + 1;
-    v3 = mod(v1 + 1, 3) + 1;
-    a21 = squeeze(fc_vertices(:, v2, :) - fc_vertices(:, v1, :));
-    a31 = squeeze(fc_vertices(:, v3, :) - fc_vertices(:, v1, :));
+    v2 = mod(v1    , n_fcs_per_facet) + 1;
+    v3 = mod(v1 + 1, n_fcs_per_facet) + 1;
+    % a21 = squeeze(fc_vertices(:, v2, :) - fc_vertices(:, v1, :));
+    a21 = reshape(fc_vertices(:, v2, :) - fc_vertices(:, v1, :), [size(fc_vertices, 1), size(fc_vertices, 2)]); %note cannot use squeeze as that causes bdrys with only 1 face to have first dim collapsed too
+    a31 = reshape(fc_vertices(:, v3, :) - fc_vertices(:, v1, :), [size(fc_vertices, 1), size(fc_vertices, 2)]); %note cannot use squeeze as that causes bdrys with only 1 face to have first dim collapsed too
+
+
+    % a31 = squeeze(fc_vertices(:, v3, :) - fc_vertices(:, v1, :));
     fc_vertex_weights(:, v1) = real(acos(sum(a21 .* a31, 2) ./ sqrt(sum(a21 .^ 2, 2) .* sum(a31 .^ 2, 2))));
     if v1 == 1
         fc_normals = cross(a21, a31, 2);
@@ -86,18 +89,18 @@ all_eds = sort(all_eds, 2);
 
 [eds, ia, ic] = unique(all_eds, 'rows');
 n_eds = size(eds, 1);
-ed_normals = zeros(n_eds, 3);
+ed_normals = zeros(n_eds, n_dims);
 for i = 1:size(all_eds, 1)
     ed_normals(ic(i), :) = ed_normals(ic(i), :) + fc_normals(all_ed_fcs(i), :);
 end
 ed_normals = ed_normals ./ sqrt(sum(ed_normals .^ 2, 2));
 
 %Work out vertices and effective normals for each vertex
-nd_normals = zeros(n_nds, 3);
+nd_normals = zeros(n_nds, n_dims);
 for i = 1:n_nds
     [f, n] = find(bdry_fcs == i);
     for j = 1:numel(f)
-        nd_normals(i, :) = nd_normals(i, :) + fc_normals(f(j), :) * fc_vertex_weights(f(j),n(j));
+        nd_normals(i, :) = nd_normals(i, :) + fc_normals(f(j), :) * fc_vertex_weights(f(j), n(j));
     end
 end
 nd_normals = nd_normals ./ sqrt(sum(nd_normals .^ 2, 2));
@@ -110,15 +113,32 @@ nd_normals = nd_normals ./ sqrt(sum(nd_normals .^ 2, 2));
 %effective normal direction.
 
 d = ones(n_pts, 1) * inf;
+if nargout > 1
+    nearest_pts = zeros(n_pts, n_dims);
+end
+if nargout > 2
+    norm_vecs = zeros(n_pts, n_dims);
+end
 
 %Vertices
 nds = bdry_nds(unique(bdry_fcs(:)), :);
 for i = 1:n_nds
     vec = pts - nds(i, :);
-    dps = sign(sum(vec .* nd_normals(i,:),2));
+    dps = sign(sum(vec .* nd_normals(i, :), 2));
     dps(dps == 0) = 1; %Force sign to be +/1 1, never zero
     r_nds = fn_dist_point_to_point(pts, nds(i, :)) .* dps;
-    d = min(d, r_nds, 'ComparisonMethod', 'abs');
+    j = abs(r_nds) < abs(d);
+    d(j) = r_nds(j);
+    if nargout > 1
+        for k = 1:n_dims
+            nearest_pts(j, k) = nds(i, k);
+        end
+    end
+    if nargout > 2
+        for k = 1:n_dims
+            norm_vecs(j, k) = nd_normals(i, k);
+        end
+    end
 end
 
 %Edges
@@ -127,11 +147,25 @@ for i = 1:n_eds
         bdry_nds(eds(i, 1), :), ...
         bdry_nds(eds(i, 2), :));
     r_eds(~above) = inf;
-    vec = pts - (bdry_nds(eds(i, 1), :) + (bdry_nds(eds(i, 2), :) - bdry_nds(eds(i, 1), :)) .* alpha);
+    nearest_ed_pts = (bdry_nds(eds(i, 1), :) + (bdry_nds(eds(i, 2), :) - bdry_nds(eds(i, 1), :)) .* alpha);
+
+    vec = pts - nearest_ed_pts;
     dps = sign(sum(vec .* ed_normals(i,:),2));
     dps(dps == 0) = 1; %Force sign to be +/1 1, never zero
     r_eds = r_eds .* dps;
-    d = min(d, r_eds, 'ComparisonMethod', 'abs');
+    
+    j = abs(r_eds) < abs(d);
+    d(j) = r_eds(j);
+    if nargout > 1
+        for k = 1:n_dims
+            nearest_pts(j, k) = nearest_ed_pts(j, k);
+        end
+    end
+    if nargout > 2
+        for k = 1:n_dims
+            norm_vecs(j, k) = ed_normals(i, k);
+        end
+    end
 end
 
 %Faces
@@ -141,13 +175,25 @@ for i = 1:n_fcs
         bdry_nds(bdry_fcs(i, 2), :), ...
         bdry_nds(bdry_fcs(i, 3), :));
     r_fcs(~above) = inf;
-    vec = pts - (bdry_nds(bdry_fcs(i, 1), :) + ...
+    nearest_fc_pts = (bdry_nds(bdry_fcs(i, 1), :) + ...
         (bdry_nds(bdry_fcs(i, 2), :) - bdry_nds(bdry_fcs(i, 1), :)) .* alpha + ...
         (bdry_nds(bdry_fcs(i, 3), :) - bdry_nds(bdry_fcs(i, 1), :)) .* beta);
+    vec = pts - nearest_fc_pts;
     dps = sign(sum(vec .* fc_normals(i,:),2));
     dps(dps == 0) = 1; %Force sign to be +/1 1, never zero
     r_fcs = r_fcs .* dps;
-    d = min(d, r_fcs, 'ComparisonMethod', 'abs');
+    j = abs(r_fcs) < abs(d);
+    d(j) = r_fcs(j);
+    if nargout > 1
+        for k = 1:n_dims
+            nearest_pts(j, k) = nearest_fc_pts(j, k);
+        end
+    end
+    if nargout > 2
+        for k = 1:n_dims
+            norm_vecs(j, k) = fc_normals(i, k);
+        end
+    end
 end
 
 if ~isempty(interior_pt)
@@ -155,6 +201,13 @@ if ~isempty(interior_pt)
         d = -d
     end
     d = d(1:end - 1);
+end
+
+if nargout > 1
+    varargout{1} = nearest_pts;
+end
+if nargout > 2
+    varargout{2} = norm_vecs;
 end
 
 end

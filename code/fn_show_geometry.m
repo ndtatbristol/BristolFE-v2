@@ -29,6 +29,7 @@ else
     options.el_abs_i = zeros(size(mod.els, 1), 1);
 end
 
-h_patch = fn_display_result_v2(mod.nds * options.scale + options.offset, mod.els, options);
+% h_patch = fn_display_result_v2(mod.nds * options.scale + options.offset, mod.els, options);
+h_patch = fn_display_result_v3(mod, options);
 end
 

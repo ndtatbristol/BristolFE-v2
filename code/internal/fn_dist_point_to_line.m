@@ -23,7 +23,6 @@ a2 = dot(a - c, a - c, 2);
 
 d  = zeros(n_pts, n_lines);
 alpha = zeros(n_pts, n_lines);
-beta  = zeros(n_pts, n_lines);
 ac = a - c;
 for i = 1: n_lines
     pa = sum((pts - c(i, :)) .* ac(i, :), 2).';
