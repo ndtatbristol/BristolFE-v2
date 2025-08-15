@@ -19,18 +19,18 @@ for i = 1:numel(matls)
     options.matl_cols(i, :) = matls{i}.col;
 end
 
-if isfield(mod, 'el_mat_i')
-    options.el_mat_i = mod.el_mat_i;
-else
-    options.el_mat_i = ones(size(mod.els, 1), 1);
-end
+% if isfield(mod, 'el_mat_i')
+%     options.el_mat_i = mod.el_mat_i;
+% else
+%     options.el_mat_i = ones(size(mod.els, 1), 1);
+% end
 
 
-if isfield(mod, 'el_abs_i')
-    options.el_abs_i = mod.el_abs_i;
-else
-    options.el_abs_i = zeros(size(mod.els, 1), 1);
-end
+% if isfield(mod, 'el_abs_i')
+%     options.el_abs_i = mod.el_abs_i;
+% else
+%     options.el_abs_i = zeros(size(mod.els, 1), 1);
+% end
 
 % h_patch = fn_display_result_v2(mod.nds * options.scale + options.offset, mod.els, options);
 h_patch = fn_display_result_v3(mod, options);

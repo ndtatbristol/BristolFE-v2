@@ -43,7 +43,7 @@ default_options.pogo_number_of_diff_absorbing_matls = inf;
 fe_options = fn_set_default_fields(fe_options, default_options);
 if size(mod.nds, 2) == 2
     %Pogo 2D models do not support out-of-plane DoF
-    fe_options.dof_to_use(fe_options.dof_to_use == 3) =[];
+    fe_options.dof_to_use(fe_options.dof_to_use == 3) = [];
 end
 if any(fe_options.dof_to_use == 4)
     error('Pogo does not support pressure as a DoF')
@@ -75,7 +75,7 @@ t1 = clock;
 fn_console_output('Generating input file ...');
 addpath(genpath(fe_options.pogo_matlab_path));
 pogo_model = fn_convert_to_pogo_model(mod, matls, steps, fe_options);
-fname = 'pogoPW3';
+fname = 'pogoPW4';
 dummy_fname = [fname, '.txt'];
 warning('off', 'all');
 savePogoInp(fname, pogo_model);
@@ -165,21 +165,22 @@ model.elNodes = mod.els';                           %nodes for each element; siz
 %In bristol FE elements are identified with material and element type is
 %specified in material definition. There is no concept of material orientation in
 %BristolFE (different orientations require different materials)
-model.elTypeRefs = mod.el_mat_i';                   %- which of the element types each element refers to, length nEls
+model.elTypeRefs = mod.el_typ_i';                   %- which of the element types each element refers to, length nEls
 model.matTypeRefs = mod.el_mat_i';                  % - which of the material types each element refers to, length nEls
 model.orientRefs = zeros(size(model.matTypeRefs));                   %- which of the orientations each element refers to, length nEls
 
-for n = 1:numel(matls)
-    model.elTypes{n}.name = matls(n).el_typ;       % - element name (matching Abaqus library typically)
+for n = 1:numel(mod.el_types)
+    model.elTypes{n}.name = mod.el_types{n};       % - element name (matching Abaqus library typically)
     model.elTypes{n}.paramsType = 0;                %This will need changing for damping - parameters associated with the element type - usually just 0
-    if isfield(matls(n), 'alpha')
-        model.matTypes{n} = fn_pogo_matl(matls(n).D, matls(n).rho, matls(n).alpha, 0);
+end
+
+
+for n = 1:numel(matls)
+    if isfield(matls{n}, 'alpha')
+        model.matTypes{n} = fn_pogo_matl(matls{n}.D, matls{n}.rho, matls{n}.alpha, 0);
     else
-        model.matTypes{n} = fn_pogo_matl(matls(n).D, matls(n).rho, 0, 0);
+        model.matTypes{n} = fn_pogo_matl(matls{n}.D, matls{n}.rho, 0, 0);
     end
-    % model.matTypes{n}.parent = 0;                   %- what is the parent material (0 if no parent) - used in absorbing boundaries
-    % model.matTypes{n}.paramsType = 2;               %2 is anisoptropic with 21 params
-    % model.matTypes{n}.paramValues = [matls(n).D(find(triu(ones(size(matls(n).D)))))', matls(n).rho];%- the parameters mentioned above
 end
 
 %Deal with absorbing materials
@@ -204,14 +205,14 @@ if isfield(mod, 'el_abs_i')
         end
         for m = 2:numel(pogo_abs_levels) %start at 2 because 1 is zero absorption case
             %Figure out the absorbing material parameters
-            if isfield(matls(n), 'alpha')
-                alpha = matls(n).alpha;
+            if isfield(matls{n}, 'alpha')
+                alpha = matls{n}.alpha;
             else
                 alpha = 0.0;
                 alpha = alpha + pogo_abs_levels(m) ^ fe_options.damping_power_law *  fe_options.max_damping;
-                D = matls(n).D * exp(log(fe_options.max_stiffness_reduction) * pogo_abs_levels(m) ^ (fe_options.damping_power_law + 1));
+                D = matls{n}.D * exp(log(fe_options.max_stiffness_reduction) * pogo_abs_levels(m) ^ (fe_options.damping_power_law + 1));
                 %Add new material to Pogo model
-                model.matTypes{new_mat_ind} = fn_pogo_matl(D, matls(n).rho, alpha, n);
+                model.matTypes{new_mat_ind} = fn_pogo_matl(D, matls{n}.rho, alpha, n);
                 %Assign all relevant elements in pogo model to this material
                 model.matTypeRefs((mod.el_mat_i == n) & (mod.el_abs_i_pogo == m)) = new_mat_ind;
                 new_mat_ind = new_mat_ind + 1;

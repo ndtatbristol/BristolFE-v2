@@ -37,9 +37,9 @@ default_options.offset = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 display_options = fn_set_default_fields(display_options, default_options);
 
-if ~isfield(mod, 'el_abs_i')
-    mod.el_abs_i = zeros(size(mod.els, 1), 1);
-end
+% if ~isfield(mod, 'el_abs_i')
+%     mod.el_abs_i = zeros(size(mod.els, 1), 1);
+% end
 
 if isempty(display_options.matl_cols)
     no_matls = numel(unique(mod.el_mat_i));
@@ -105,9 +105,9 @@ else
     if numel(display_options.offset) ~= 3
         display_options.offset = [0,0,0];
     end
-    el_faces = fn_faces_from_els(mod.els, display_options.el_typ_i);
+    el_faces = fn_faces_from_els(mod.els, mod.el_typ_i, mod.el_types);
     for i = 1:numel(el_faces)
-        cdata = base_cdata(el_faces{i}.el_i, :, :)
+        cdata = base_cdata(el_faces{i}.el_i, :, :);
         j = fn_exterior_faces(el_faces{i}.fcs);
         fcs = el_faces{i}.fcs(j,:);
         cdata = cdata(j,:,:);
@@ -118,7 +118,7 @@ else
             'FaceAlpha', display_options.transparency,  'CData', cdata, 'EdgeColor', 'none');
 
         if display_options.show_abs
-            set(h_patch, 'CData', cdata .* (1 - display_options.el_abs_i(el_i) / 2))
+            set(h_patch, 'CData', cdata .* (1 - mod.el_abs_i(el_i) / 2))
         end
 
         if display_options.draw_elements

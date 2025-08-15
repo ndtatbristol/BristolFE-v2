@@ -1,4 +1,4 @@
-function [d, varargout] = fn_signed_dist_to_bdry(pts, bdry_vtcs, varargin)
+function [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bndry_edges] = fn_signed_dist_to_bdry(pts, bdry_vtcs, varargin)
 %SUMMARY
 %   Returns signed (positive exterior) shortest distance of point(s) to 
 %   boundary surface described by vertices of edges (2D) or triangular 
@@ -30,10 +30,17 @@ function [d, varargout] = fn_signed_dist_to_bdry(pts, bdry_vtcs, varargin)
 %OUTPUTS
 %   d - n_pts x 1 signed distance of each point to nearest point on 
 %   boundary where sign is negative (interior) or positive (exterior).
-%   [nearest_pts - n_pts x n_dims matrix of coordinates of nearest point on
-%   boundary associated with each point]
-%   [norm_vecs - n_pts x n_dims matrix of unit vectors of boundary surface 
-%   normal at each nearest_pt]
+%   nearest_pts - n_pts x n_dims matrix of coordinates of nearest point on
+%   boundary associated with each point
+%   norm_vecs - n_pts x n_dims matrix of unit vectors of boundary surface 
+%   normal at each nearest_pt
+%   type_of_nearest_entity - n_pts x 1 matrix of type of entity that each point
+%   is nearest to (1 = vertex, 2 = edge, 3 = face)
+%   nearest_entity - n_pts x 1 matrix of index of nearest entity to each point
+%   bndry_edges - n_edges x 2 matrix of node numbers of edges describing
+%   boundary. In 2D, this will be bdry_fcs id specified; in all other cases
+%   the list of edges is generated automatically. This is returned so that
+%   nearest_entity can be interpreted when the nearest entity is an edge.
 %NOTES
 %   Formulated to be efficient for checking large numbers of points (i.e.
 %   n_pts is large) rather than a large number of edges / facets
@@ -68,13 +75,7 @@ switch n_dims
         if ~isempty(bdry_fcs) && size(bdry_fcs, 2) ~= 2
             error('If specified, bdry_fcs mus be n_fcs x 2 for 2D problems')
         end
-        if nargout == 1
-            d = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
-        elseif nargout == 2
-            [d, varargout{1}] = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
-        elseif nargout == 3
-            [d, varargout{1}, varargout{2}] = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
-        end
+            [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bndry_edges] = fn_dist_point_to_bdry_2D_v2(pts, bdry_vtcs, bdry_fcs, interior_pt);
     case 3
         if isempty(bdry_fcs)
             error('3D problems require bdry_fcs to be specified')
@@ -82,14 +83,7 @@ switch n_dims
         if size(bdry_fcs) ~= 3
             error('bdry_fcs must be n_fcs x 3 for 3D problems')
         end
-        if nargout == 1
-            d = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
-        elseif nargout == 2
-            [d, varargout{1}] = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
-        elseif nargout == 3
-            [d, varargout{1}, varargout{2}] = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
-        end
-            
+        [d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bndry_edges] = fn_dist_point_to_bdry_3D(pts, bdry_vtcs, bdry_fcs, interior_pt);
 end
 
 end

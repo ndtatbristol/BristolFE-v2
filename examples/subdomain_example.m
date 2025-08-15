@@ -24,11 +24,11 @@ fe_options.field_output_every_n_frames = 20;
 
 %DEFINE THE GEOMETRY PARAMETRICALLY
 model_size = 10e-3;
-water_thickness = 7e-3;
+water_thickness = 3e-3;
 abs_bdry_thickness = 1e-3;
 scatterer_size = 1e-3;
 subdomain_size = scatterer_size + 0.1e-3;
-scatterer_depth = 0e-3;
+scatterer_depth = 4e-3;
 src_size = 3.5e-3;
 src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 = volumetric expansion (for fluids)
 

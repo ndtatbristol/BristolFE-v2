@@ -1,5 +1,5 @@
 %Run all examples - used prior to build to check no errors
-clear;
+clear all;
 close all
 restoredefaultpath;
 

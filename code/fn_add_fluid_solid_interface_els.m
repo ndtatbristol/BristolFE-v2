@@ -23,60 +23,49 @@ interface_el_i = find(strcmp(mod.el_types, options.interface_el_name));
 solid_el_i = find(ismember(mod.el_types, options.solid_el_names));
 fluid_el_i = find(ismember(mod.el_types, options.fluid_el_names));
 
-%First get list of all (internal and external) unique element edges in model and 
-%the elements adjoining each edge (zero in second column means that there 
-%is only element on one side of that edge, so it is external edge)
-[fluid_solid_interface_edges, els_adjoining_fluid_solid_interface_edges] = fn_get_edges(mod.els);
+if isempty(solid_el_i) || isempty(fluid_el_i)
+    %model has no solid or no fluid element types 
+    return
+end
 
-%Eliminate rows associated with edge elements
-j = ~any(els_adjoining_fluid_solid_interface_edges == 0, 2);
-fluid_solid_interface_edges = fluid_solid_interface_edges(j, :);
-els_adjoining_fluid_solid_interface_edges = els_adjoining_fluid_solid_interface_edges(j, :);
+%New method using find interface function (should work for 2D and 3D up
+%to and including this function)
+[interface_facets, interface_el_solid, interface_el_fluid] = fn_find_interface(mod, ismember(mod.el_typ_i, solid_el_i), ismember(mod.el_typ_i, fluid_el_i));
 
-%Create matrix describing whether elements on either side of each edge are
-%fluid (2) or solid (1)
-el_typ = mod.el_typ_i(els_adjoining_fluid_solid_interface_edges);
-fluid_or_solid = zeros(size(el_typ));
-fluid_or_solid(ismember(el_typ, solid_el_i)) = 1; %solid = 1
-fluid_or_solid(ismember(el_typ, fluid_el_i)) = 2; %fluid = 2
+if isempty(interface_facets)
+    %No interface found, so do nothing
+    return
+end
 
-%Identify edges where material is fluid on one side an solid on the other
-j = fluid_or_solid(:, 1) ~= fluid_or_solid(:, 2);
-
-%Restrict the list of edges to just these ones
-% el_typ = el_typ(j, :);
-els_adjoining_fluid_solid_interface_edges = els_adjoining_fluid_solid_interface_edges(j, :);
-fluid_solid_interface_edges = fluid_solid_interface_edges(j, :);
-fluid_or_solid = fluid_or_solid(j, :);
-
-%Nodes in fluid_solid_interface_edges need ordering so solid and fluid are 
+%Nodes in interface_facets need ordering so solid and fluid are 
 %on correct sides for all elements - this is why mod.nds data is necessary
-%for this function to work
-no_int_els = size(fluid_solid_interface_edges,1);
+%for this function to work. Currently this part is specific to 2D.
+no_int_els = size(interface_facets,1);
 %Loop through each interface edge in turn and flip node order if necessary
 %to they are all same way around
 for i = 1:no_int_els
     %work out centre of fluid element adjoining this edge
-    e = els_adjoining_fluid_solid_interface_edges(i, fluid_or_solid(i, :) == 2);
+    % e = els_adjoining_fluid_solid_interface_edges(i, fluid_or_solid(i, :) == 2);
+    e = interface_el_fluid(i);
     ec = fn_calc_element_centres(mod.nds, mod.els(e,:));
     %line between nodes
-    a = mod.nds(fluid_solid_interface_edges(i, 2), :) - mod.nds(fluid_solid_interface_edges(i, 1), :);
+    a = mod.nds(interface_facets(i, 2), :) - mod.nds(interface_facets(i, 1), :);
     %line at right angle to line between nodes
     b = [a(2), -a(1)];
     %line from first node to ec
-    c = ec - mod.nds(fluid_solid_interface_edges(i, 1), :);
+    c = ec - mod.nds(interface_facets(i, 1), :);
     %check sign of dot product
     if dot(c, b) < 0
-        fluid_solid_interface_edges(i, :) = fliplr(fluid_solid_interface_edges(i, : ));
+        interface_facets(i, :) = fliplr(interface_facets(i, : ));
     end
 end
 
 %Add the new interface elements to the model
-mod.els = [mod.els; [fluid_solid_interface_edges, zeros(no_int_els, size(mod.els, 2) - size(fluid_solid_interface_edges, 2))]];
+mod.els = [mod.els; [interface_facets, zeros(no_int_els, size(mod.els, 2) - size(interface_facets, 2))]];
 mod.el_typ_i = [mod.el_typ_i; repmat(interface_el_i, [no_int_els, 1])];
-mod.el_mat_i = [mod.el_mat_i; zeros(no_int_els, 1)]; %interface elements have no material
 
-%Extend absorbing indices
+%Extend material and absorbing indices to include new elements
+mod.el_mat_i = [mod.el_mat_i; zeros(no_int_els, 1)];
 mod.el_abs_i = [mod.el_abs_i; zeros(no_int_els, 1)];
 
 end

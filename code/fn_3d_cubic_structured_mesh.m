@@ -43,5 +43,7 @@ mod.els = [
     fn_vec(i(1:end - 1, 2:end,     2:end)), ...
     ];
 
-mod.el_mat_i = ones(size(mod.els, 1), 1);
+mod.el_mat_i = zeros(size(mod.els, 1), 1);
+mod.el_abs_i = zeros(size(mod.els, 1), 1);
+mod.el_typ_i = zeros(size(mod.els, 1), 1);
 end

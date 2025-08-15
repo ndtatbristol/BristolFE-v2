@@ -1,13 +1,13 @@
-function el_faces = fn_faces_from_els(els, el_typ_i)
+function el_faces = fn_faces_from_els(els, el_typ_i, el_types)
 %this returns a cell array (one cell per element type), each cell
 %containing a matrix of element face nodes for elements of that type in the
 %model.
 
-un_el_types = unique(el_typ_i);
+un_el_typ_i = unique(el_typ_i);
 el_i = (1:size(els, 1))';
 
-for i = 1:numel(un_el_types)
-    ei = un_el_types{i};
+for i = 1:numel(un_el_typ_i)
+    ei = el_types{un_el_typ_i(i)};
 
     switch ei
         case {'CPE3', 'AC2D3'} %2D triangles
@@ -35,7 +35,7 @@ for i = 1:numel(un_el_types)
                 ];
 
     end
-    j = strcmp(el_typ_i, ei);
+    j = el_typ_i == un_el_typ_i(i);
 
     el_faces{i}.el_typ_i = ei;
     el_faces{i}.fcs = reshape(els(j, fc_i), [], size(fc_i, 2));
