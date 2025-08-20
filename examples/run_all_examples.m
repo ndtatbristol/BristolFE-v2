@@ -18,3 +18,5 @@ for i = 1:numel(scripts_to_run)
     fprintf('--------------------------------------------------------------\n\n')
     run(scripts_to_run{i});
 end
+
+clear all;

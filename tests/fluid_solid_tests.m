@@ -96,7 +96,7 @@ mod = fn_set_els_inside_bdry_to_mat(mod, water_bdry_pts, water_matl_i);
 mod = fn_add_fluid_solid_interface_els(mod, matls);
 
 %Define the absorbing layer
-mod = fn_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
+mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
 
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run
@@ -119,7 +119,7 @@ src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 =
 for i = 1:numel(src_angle_degs)
     % src_end_pts = src_rad * [sind(src_angle_degs(i)), cosd(src_angle_degs(i))] + [-1;1] * [-cosd(src_angle_degs(i)), sind(src_angle_degs(i))] * src_len / 2;
     src_end_pts = fn_end_pts(src_rad, fluid_theta_inc(i), src_trans_len);
-    steps{i}.load.frc_nds = fn_find_nodes_on_line(mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
+    steps{i}.load.frc_nds = fn_find_nodes_nearest_to_line(mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
     steps{i}.load.frc_dfs = ones(size(steps{i}.load.frc_nds)) * src_dir;
     steps{i}.load.time = t;
     steps{i}.load.frcs = in_sig;
@@ -131,7 +131,7 @@ for i = 1:numel(src_angle_degs)
 
     %Monitoring points for incident wave in water
     mon_end_pts = fn_end_pts(mon_rad, fluid_theta_inc(i), mon_trans_len);
-    tmp = fn_find_nodes_on_line(mod.nds, mon_end_pts(1, :), mon_end_pts(2, :), el_size / 2);
+    tmp = fn_find_nodes_nearest_to_line(mod.nds, mon_end_pts(1, :), mon_end_pts(2, :), el_size / 2);
     steps{i}.mon.nds = [steps{i}.mon.nds; tmp];
     steps{i}.mon.dfs = [steps{i}.mon.dfs; ones(size(tmp)) * src_dir];
     steps{i}.mon.case = [steps{i}.mon.case; ones(size(tmp)) * 1];
@@ -139,7 +139,7 @@ for i = 1:numel(src_angle_degs)
 
     %Monitoring points for reflected waves
     mon_end_pts = fn_end_pts(mon_rad, fluid_theta_ref(i), mon_trans_len);
-    tmp = fn_find_nodes_on_line(mod.nds, mon_end_pts(1, :), mon_end_pts(2, :), el_size / 2);
+    tmp = fn_find_nodes_nearest_to_line(mod.nds, mon_end_pts(1, :), mon_end_pts(2, :), el_size / 2);
     steps{i}.mon.nds = [steps{i}.mon.nds; tmp];
     steps{i}.mon.dfs = [steps{i}.mon.dfs; ones(size(tmp)) * src_dir];
     steps{i}.mon.case = [steps{i}.mon.case; ones(size(tmp)) * 2];
@@ -147,7 +147,7 @@ for i = 1:numel(src_angle_degs)
 
     %Monitoring points for refracted L waves
     mon_end_pts = fn_end_pts(mon_rad, solid_theta_L(i), mon_trans_len);
-    tmp = fn_find_nodes_on_line(mod.nds, mon_end_pts(1, :), mon_end_pts(2, :), el_size / 2);
+    tmp = fn_find_nodes_nearest_to_line(mod.nds, mon_end_pts(1, :), mon_end_pts(2, :), el_size / 2);
     steps{i}.mon.nds = [steps{i}.mon.nds; tmp; tmp]; %need both DoF at each node in solid
     steps{i}.mon.dfs = [steps{i}.mon.dfs; ones(size(tmp)); ones(size(tmp)) * 2]; %need both DoF at each node in solid
     steps{i}.mon.case = [steps{i}.mon.case; [ones(size(tmp)); ones(size(tmp))] * 3]; %need both DoF at each node in solid
@@ -155,7 +155,7 @@ for i = 1:numel(src_angle_degs)
 
     %Monitoring points for refracted S waves
     mon_end_pts = fn_end_pts(mon_rad, solid_theta_S(i), mon_trans_len);
-    tmp = fn_find_nodes_on_line(mod.nds, mon_end_pts(1, :), mon_end_pts(2, :), el_size / 2);
+    tmp = fn_find_nodes_nearest_to_line(mod.nds, mon_end_pts(1, :), mon_end_pts(2, :), el_size / 2);
     steps{i}.mon.nds = [steps{i}.mon.nds; tmp; tmp]; %need both DoF at each node in solid
     steps{i}.mon.dfs = [steps{i}.mon.dfs; ones(size(tmp)); ones(size(tmp)) * 2]; %need both DoF at each node in solid
     steps{i}.mon.case = [steps{i}.mon.case; [ones(size(tmp)); ones(size(tmp))] * 4]; %need both DoF at each node in solid

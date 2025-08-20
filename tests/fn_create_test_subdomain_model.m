@@ -112,7 +112,7 @@ main.mod = fn_set_els_inside_bdry_to_mat(main.mod, cladding_bdry_pts, gold_matl_
 main.mod = fn_add_fluid_solid_interface_els(main.mod, main.matls);
 
 %Define the absorbing layer
-main.mod = fn_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
+main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
 
 %Define transducer
 no_array_els = 1;
@@ -121,7 +121,7 @@ el_cents = linspace(-0.5, 0.5, no_array_els)' * (trans_size - array_el_size) * [
 for e = 1:no_array_els
     trans1  = el_cents(e, :) - array_el_size / 2 * [cosd(trans_angd), sind(trans_angd)];
     trans2  = el_cents(e, :) + array_el_size / 2 * [cosd(trans_angd), sind(trans_angd)];
-    [main.trans{e}.nds, s] = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, el_size / 2);
+    [main.trans{e}.nds, s] = fn_find_nodes_nearest_to_line(main.mod.nds, trans1, trans2, el_size / 2);
     main.trans{e}.dfs = ones(size(main.trans{e}.nds)) * 4;
 end
 

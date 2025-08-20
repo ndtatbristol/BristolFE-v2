@@ -49,7 +49,7 @@ if do_defect_cases
         else
             scat_matl = 3;
         end
-        main.doms{d}.mod = fn_add_scatterer(main.doms{d}.mod, main.matls, scat_pts, scat_matl);
+        main.doms{d}.mod = fn_2d_add_inclusion_or_void(main.doms{d}.mod, main.matls, scat_pts, scat_matl);
         main.doms{d}.mod.int_el_i = fn_elements_in_region(main.doms{d}.mod, main.doms{d}.mod.inner_bndry_pts);
     end
 end

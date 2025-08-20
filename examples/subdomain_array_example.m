@@ -67,7 +67,7 @@ fe_options.field_output_every_n_frames = inf;
 el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
-main.mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size);
+main.mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 main.mod.el_types = {el_typ_solid};
 main.mod.el_mat_i(:) = steel_matl_i;
 main.mod.el_typ_i(:) = find(strcmp(main.mod.el_types, el_typ_solid));
@@ -77,14 +77,14 @@ main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 main.mod.design_centre_freq = centre_freq;
 
 %Define the absorbing layer
-main.mod = fn_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
+main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
 
 %Define array
 tc = mean(1:no_els);
 for t = 1:no_els
     el_start = centre + [pitch * (t - tc - 0.5), 0];
     el_end =   centre + [pitch * (t - tc + 0.5), 0];
-    [main.trans{t}.nds, s] = fn_find_nodes_on_line(main.mod.nds, el_start, el_end, el_size / 2);
+    [main.trans{t}.nds, s] = fn_find_nodes_nearest_to_line(main.mod.nds, el_start, el_end, el_size / 2);
     main.trans{t}.dfs = ones(size(main.trans{t}.nds)) * 2; %DF 2 is y direction
 end
 
@@ -95,7 +95,7 @@ scatterer_size = model_size / 10 * 0.8;
 inner_bdry = [cos(a), sin(a)] / 2 * subdomain_size + [1, 1] * model_size / 2;
 scat_pts = [cos(a), sin(a)] / 2 * scatterer_size + [1, 1] * model_size / 2;
 main.doms{1}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdry_thickness);
-main.doms{1}.mod = fn_add_scatterer(main.doms{1}.mod, main.matls, scat_pts, 0);
+main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.matls, scat_pts, 0);
 
 %Show the mesh
 if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing

@@ -82,7 +82,7 @@ mod = fn_add_fluid_solid_interface_els(mod, matls);
 
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run
-steps{1}.load.frc_nds = fn_find_nodes_on_line(mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
+steps{1}.load.frc_nds = fn_find_nodes_nearest_to_line(mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
 steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * src_dir;
 
 %Also provide the time signal for the loading (if this is a vector, it will

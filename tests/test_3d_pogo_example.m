@@ -61,7 +61,7 @@ fe_options.solver = 'pogo';
 el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
-mod = fn_3d_cubic_structured_mesh(crnr_pts, el_size);
+mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
 
 %Quick test of absorbing layers
 el_ctrs = fn_calc_element_centres(mod.nds, mod.els);
@@ -81,7 +81,7 @@ mod.el_mat_i(i) = gold_mat_i;
 
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run
-steps{1}.load.frc_nds = fn_find_node_at_point(mod.nds, src_centre, el_size);
+steps{1}.load.frc_nds = fn_find_node_nearest_to_point(mod.nds, src_centre, el_size);
 steps{1}.load.frc_nds = find(...
     abs(mod.nds(:, 3) - src_centre(3)) < el_size / 2 & ...
     sqrt(sum( (mod.nds(:, 1:2) - src_centre(1:2)) .^ 2, 2 )) < src_radius ...

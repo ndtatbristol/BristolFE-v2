@@ -61,14 +61,14 @@ fe_options.field_output_every_n_frames = 5;
 el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
-mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size);
+mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 mod.el_mat_i(:) = steel_matl_i;
 mod.el_types = {el_typ_solid};
 mod.el_typ_i(:) = find(strcmp(mod.el_types, el_typ_solid));
 
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run
-frc_nds = fn_find_nodes_on_line(mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
+frc_nds = fn_find_nodes_nearest_to_line(mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
 %for angled forcing, need to force in both DoF at each forcing node, so
 %list is twice as long as number of nodes
 steps{1}.load.frc_nds = [frc_nds; frc_nds];

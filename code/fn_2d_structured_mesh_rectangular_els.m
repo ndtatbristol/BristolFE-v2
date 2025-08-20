@@ -1,4 +1,4 @@
-function mod = fn_rectangular_structured_mesh(bdry_pts, el_size)
+function mod = fn_2d_structured_mesh_rectangular_els(bdry_pts, el_size)
 %SUMMARY
 %   Utility function for generating a structured mesh of right isocoles triangular
 %   elements, that fills the region specified by bdry_nds. However,

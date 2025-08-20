@@ -18,7 +18,7 @@ matls{steel_mat_i}.name = 'Steel';
 
 el_typ_solid = 'C3D8R'; %C3D8 8 noded brick
 
-mod = fn_3d_cubic_structured_mesh(crnr_pts, el_size);
+mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size);
 mod.el_types = {el_typ_solid};
 mod.el_typ_i(:) = find(strcmp(el_typ_solid, mod.el_types));
 mod.el_mat_i(:) = steel_mat_i;

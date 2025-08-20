@@ -102,10 +102,10 @@ main.mod = fn_add_fluid_solid_interface_els(main.mod);
 t = 1;
 trans1  = trans_cent - trans_size / 2 * [cosd(trans_angd), sind(trans_angd)];
 trans2  = trans_cent + trans_size / 2 * [cosd(trans_angd), sind(trans_angd)];
-[main.tx{t}.nds, s] = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
+[main.tx{t}.nds, s] = fn_find_nodes_nearest_to_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
 main.tx{t}.dfs= ones(size(main.tx{t}.nds)) * 4;
 
-% main.steps{t}.load.frc_nds = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
+% main.steps{t}.load.frc_nds = fn_find_nodes_nearest_to_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
 % main.steps{t}.load.frc_dfs = ones(size(main.steps{t}.load.frc_nds)) * 4;
 
 %Subdomains

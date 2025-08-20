@@ -1,4 +1,4 @@
-function mod = fn_3d_cubic_structured_mesh(crnr_pts, el_size)
+function mod = fn_3d_structured_mesh_hexahedral_els(crnr_pts, el_size)
 %SUMMARY
 %   Utility function for generating a 3d structured mesh of cuboidal
 %   elements, that fills the cuboidal region specified by crnr_pts.

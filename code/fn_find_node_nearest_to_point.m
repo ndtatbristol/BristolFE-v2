@@ -1,4 +1,4 @@
-function node = fn_find_node_at_point(nodes, p, tol)
+function node = fn_find_node_nearest_to_point(nodes, p, tol)
 %SUMMARY
 %   Finds nearest node to specified point
 %INPUTS

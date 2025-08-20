@@ -1,4 +1,4 @@
-function mod = fn_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness)
+function mod = fn_2d_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness)
 %SUMMARY
 %   Adds an absorbing boundary by increasing the element absorbing index
 %   proportional to their distance from the specified boundary divided by

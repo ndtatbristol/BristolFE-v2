@@ -84,7 +84,7 @@ abs_bdry_pts = [
 
 %Work out element size and Create the nodes and elements of the mesh
 el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
-main.mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size);
+main.mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 main.mod.el_types = {el_typ_solid, el_typ_fluid};
 
 %First set material of all elements to steel ...
@@ -109,22 +109,22 @@ main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
 main.mod.design_centre_freq = centre_freq;
 
 %Define the absorbing layer
-main.mod = fn_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
+main.mod = fn_2d_add_absorbing_layer(main.mod, abs_bdry_pts, abs_bdry_thickness);
 
 %Define transducers
 src_end_pts = [ model_size / 2 - src_size / 2, abs_bdry_thickness
                 model_size / 2 + src_size / 2, abs_bdry_thickness];
 
-[main.trans{1}.nds, s] = fn_find_nodes_on_line(main.mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
+[main.trans{1}.nds, s] = fn_find_nodes_nearest_to_line(main.mod.nds, src_end_pts(1, :), src_end_pts(2, :), el_size / 2);
 main.trans{1}.dfs = ones(size(main.trans{1}.nds)) * src_dir;
 
 %Create a subdomain in the middle with a hole in surface as scatterer
 scatterer_centre = [model_size / 2, water_thickness + scatterer_depth];
 inner_bdry = [-1,-1;-1,1;1,1;1,-1] / 2 * subdomain_size + scatterer_centre;
-scat_pts =   fn_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
+scat_pts =   fn_2d_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
 
 main.doms{1}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdry_thickness);
-main.doms{1}.mod = fn_add_scatterer(main.doms{1}.mod, main.matls, scat_pts, 0);
+main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.matls, scat_pts, 0);
 
 %Show the mesh
 if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing

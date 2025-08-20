@@ -104,11 +104,11 @@ el_cents = linspace(-0.5, 0.5, no_els)' * (trans_size - el_size) * [cosd(trans_a
 for e = 1:no_els
     trans1  = el_cents(e, :) - el_size / 2 * [cosd(trans_angd), sind(trans_angd)];
     trans2  = el_cents(e, :) + el_size / 2 * [cosd(trans_angd), sind(trans_angd)];
-    [main.trans{e}.nds, s] = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
+    [main.trans{e}.nds, s] = fn_find_nodes_nearest_to_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
     main.trans{e}.dfs= ones(size(main.trans{e}.nds)) * 4;
 end
 
-% main.steps{t}.load.frc_nds = fn_find_nodes_on_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
+% main.steps{t}.load.frc_nds = fn_find_nodes_nearest_to_line(main.mod.nds, trans1, trans2, main.mod.el_size / 2);
 % main.steps{t}.load.frc_dfs = ones(size(main.steps{t}.load.frc_nds)) * 4;
 
 %Subdomains

@@ -1,4 +1,4 @@
-function mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size)
+function mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size)
 %SUMMARY
 %   Utility function for generating a isometric structured mesh of triangular
 %   elements, that fills the region specified by bdry_nds.
@@ -60,7 +60,7 @@ mod.nds = [node_x_positions(:), node_y_positions(:)];
 %Find nearest node to origin and shift mesh to that it is on origin -
 %useful for any code that relies on element rows being in specific places
 %to avoid unnecessary staircasing
-% i = fn_find_node_at_point(mod.nds, [0.0, 0.0], inf);
+% i = fn_find_node_nearest_to_point(mod.nds, [0.0, 0.0], inf);
 % mod.nds = mod.nds - mod.nds(i,:);
 
 

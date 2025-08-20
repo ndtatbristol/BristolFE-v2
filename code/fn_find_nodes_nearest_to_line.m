@@ -1,4 +1,4 @@
-function [node_list, s, r] = fn_find_nodes_on_line(nodes, p1, p2, tol)
+function [node_list, s, r] = fn_find_nodes_nearest_to_line(nodes, p1, p2, tol)
 
 %SUMMARY
 %   Returns list of nodes that lie along line (with specified tolerance)

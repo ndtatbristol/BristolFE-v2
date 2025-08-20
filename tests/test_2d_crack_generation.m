@@ -37,7 +37,7 @@ crack_vtcs3 = [
     1,1];
 
 
-mod = fn_2d_isometric_structured_mesh(bdry_pts, el_size);
+mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 mod.el_types = {el_typ_solid};
 mod.el_typ_i(:) = find(strcmp(el_typ_solid, mod.el_types));
 mod.el_mat_i(:) = steel_mat_i;
