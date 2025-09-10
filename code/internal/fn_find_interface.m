@@ -23,9 +23,10 @@ if ~any(el_i1) || ~any(el_i2)
 end
 
 %Get lists of faces for both element sets
+el_i = (1:size(mod.els, 1))';
 
-fcs(1).data = fn_faces_from_els(mod.els(el_i1,:), mod.el_typ_i(el_i1), el_types);
-fcs(2).data = fn_faces_from_els(mod.els(el_i2,:), mod.el_typ_i(el_i2), el_types);
+fcs(1).data = fn_faces_from_els(mod.els(el_i1,:), el_i(el_i1), mod.el_typ_i(el_i1), el_types);
+fcs(2).data = fn_faces_from_els(mod.els(el_i2,:), el_i(el_i2), mod.el_typ_i(el_i2), el_types);
 
 %Loop over every face in set 1 and flag any that are in set 2
 % max_nds_per_facet = 0; %also get maximum number of nodes per facet

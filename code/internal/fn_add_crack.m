@@ -1,4 +1,4 @@
-function mod = fn_add_crack(mod, crack_vtcs, crack_fcs, varargin)
+function mod = fn_add_crack(mod, crack_vtcs, crack_fcs, cod)
 %SUMMARY
 %   Adds a crack into a 2D or 3D model by identifying nearest element
 %   edges/faces and 'splitting' model along them, by duplicating nodes.
@@ -19,24 +19,11 @@ function mod = fn_add_crack(mod, crack_vtcs, crack_fcs, varargin)
 %OUTPUT
 %   mod - model with modified nodes and elements.
 %--------------------------------------------------------------------------
-if isempty(varargin)
-    cod = 0;
-else
-    cod = varargin{1};
-end
 
 ndim = size(mod.nds, 2);
 
-switch ndim
-    case 2
-        %If crack fcs not specified in 2d then crack is assumed to along
-        %line of vertices in order listed
-        if isempty(crack_fcs)
-            crack_fcs = [1:size(crack_vtcs, 1) - 1; 2:size(crack_vtcs, 1)]';
-        end
-    case 3
-        %Get crack facet node numbering consistent
-        [crack_fcs, crack_eds, ed_fcs] = fn_consistent_facet_nodes(crack_fcs);
+if ndim == 3
+    [crack_fcs, crack_eds, ed_fcs] = fn_consistent_facet_nodes(crack_fcs);
 end
 
 %Get signed distance of each element from crack

@@ -23,9 +23,6 @@ mod.el_types = {el_typ_solid};
 mod.el_typ_i(:) = find(strcmp(el_typ_solid, mod.el_types));
 mod.el_mat_i(:) = steel_mat_i;
 
-
-
-
 %Crack nodes
 crack_vtcs1 = [
      1, 2, 3
@@ -36,17 +33,13 @@ crack_fcs1 = [
     1, 2, 3
     1, 2, 4];
 
-[mod, el_cents, ep, en, crack_nds] = fn_add_crack(mod, crack_vtcs1, crack_fcs1, cod);
+mod = fn_3d_add_crack(mod, crack_vtcs1, crack_fcs1, cod);
 
 figure;
 display_options.transparency = 0.5;
 display_options.draw_elements = 0;
 h_patch = fn_show_geometry(mod, matls, display_options);
-% patch('Faces', crack_fcs1, 'Vertices', crack_vtcs1,'FaceColor', 'r', 'FaceAlpha', 0.5);
-
-% hold on; plot3(el_cents(ep, 1), el_cents(ep, 2), el_cents(ep, 3), 'r.');
-% hold on; plot3(el_cents(en, 1), el_cents(en, 2), el_cents(en, 3), 'g.');
-% hold on; plot3(crack_nds(:, 1), crack_nds(:, 2), crack_nds(:, 3), 'r.');
+patch('Faces', crack_fcs1, 'Vertices', crack_vtcs1,'FaceColor', 'r', 'FaceAlpha', 0.5);
 
 axis on;
 xlabel('x')

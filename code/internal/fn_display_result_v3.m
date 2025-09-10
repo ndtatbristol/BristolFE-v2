@@ -105,7 +105,7 @@ else
     if numel(display_options.offset) ~= 3
         display_options.offset = [0,0,0];
     end
-    el_faces = fn_faces_from_els(mod.els, mod.el_typ_i, mod.el_types);
+    el_faces = fn_faces_from_els(mod.els, 1:size(mod.els,1), mod.el_typ_i, mod.el_types);
     for i = 1:numel(el_faces)
         cdata = base_cdata(el_faces{i}.el_i, :, :);
         j = fn_exterior_faces(el_faces{i}.fcs);
