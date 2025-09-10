@@ -1,5 +1,5 @@
 clear all;
-close all;
+% close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 
@@ -15,7 +15,7 @@ interface_el_type = 'ASI2D2';
 safety_factor = 3;
 
 fe_options.field_output_every_n_frames = inf;
-
+fe_options.solver_mode = 'vel at curent time step';
 %--------------------------------------------------------------------------
 %DEFINE THE PROBLEM
 
@@ -76,7 +76,7 @@ max_time = 15e-6;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 30;
-% els_per_wavelength = 15;
+els_per_wavelength = 15;
 
 %The default option is field_output_every_n_frames = inf, which means there
 %is no field output. Set to a finite value to get a field output.
@@ -130,16 +130,16 @@ abs_bdry_pts = [
 mod = fn_add_absorbing_layer(mod, abs_bdry_pts, abs_bdry_thickness);
 
 %Show the mesh
-% figure; 
-% display_options.draw_elements = 0;
-% display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
-% display_options.node_sets_to_plot(1).col = 'r.';
-% h_patch = fn_show_geometry(mod, matls, display_options);
+figure; 
+display_options.draw_elements = 0;
+display_options.node_sets_to_plot(1).nd = steps{1}.load.frc_nds;
+display_options.node_sets_to_plot(1).col = 'r.';
+h_patch = fn_show_geometry(mod, matls, display_options);
 
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-res = fn_BristolFE_v2(mod, matls, steps, fe_options);
+res = fn_FE_entry_point(mod, matls, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
@@ -150,7 +150,7 @@ res = fn_BristolFE_v2(mod, matls, steps, fe_options);
 % plot(steps{1}.load.time, sum(res{1}.dsps));
 % xlabel('Time (s)')
 
-figure;plot(steps{1}.load.time, log(abs(sum(res{1}.dsps)')))
+% figure;plot(steps{1}.load.time, log(abs(sum(res{1}.dsps)')))
 
 time = steps{1}.load.time;
 time = time - (no_cycles / 2) / centre_freq;
