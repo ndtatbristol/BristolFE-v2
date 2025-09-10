@@ -78,7 +78,7 @@ h_patch = fn_show_geometry(mod, matls, display_options);
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-[res, mats] = fn_FE_entry_point(mod, matls, steps, fe_options);
+[res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 % res = fn_FE_entry_point(mod, matls, steps, fe_options, 'Abaqus');
 
 %--------------------------------------------------------------------------

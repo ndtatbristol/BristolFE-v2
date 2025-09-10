@@ -179,13 +179,20 @@ end
 t1 = clock;
 ti_start = inf;
 if ~isempty(forcing_indices)
-    ti_start = min(min(find(sum(abs(forcing_functions)))), ti_start);
+    q = sum(abs(forcing_functions));
+    ti_start = min(min(find(q > max(q) * 1e-9)), ti_start);%ugly hard codede number
 end
 if ~isempty(disp_indices)
-    ti_start = min(min(find(sum(abs(disp_functions)))), ti_start);
+    q = sum(abs(disp_functions));
+    ti_start = min(min(find(q > max(q) * 1e-9)), ti_start);%ugly hard codede number
+    % ti_start = min(min(find(sum(abs(disp_functions)))), ti_start);
 end
-
-prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');
+if isempty(ti_start)
+    fn_console_output('...no input forcing over time window; result will be zero\n', [], 0);
+    return
+end
+%prog_dot_ti = interp1(linspace(0, 1, length(time) - ti_start + 1), ti_start:length(time), linspace(0,1,11), 'nearest');
+prog_dot_ti = round(interp1([0,1], [ti_start,length(time)], linspace(0,1,11), 'linear'));
 prog_dot_ti = prog_dot_ti(2: end);
 progress_output_at_this_time = zeros(size(time));
 progress_output_at_this_time(prog_dot_ti) = 1;

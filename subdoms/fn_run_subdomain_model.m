@@ -8,7 +8,7 @@ default_options.dof_to_use = [];
 default_options.solver_mode = 'vel at curent time step';
 
 fe_options = fn_set_default_fields(fe_options, default_options);
-fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(main.mod.el_types(unique(main.mod.el_typ_i)), fe_options.dof_to_use);
+% fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(main.el_types(unique(main.mod.el_typ_i)), fe_options.dof_to_use);
 
 if isempty(fe_options.tx_trans)
     fe_options.tx_trans = 1:numel(main.trans); %by default all transducers are transmitters
@@ -66,8 +66,7 @@ for d = fe_options.doms_to_run
     end
 
     %Run the model for all incident fields
-    % res = fn_BristolFE_v2(main.doms{d}.mod, main.matls, steps, fe_options);
-    res = fn_FE_entry_point(main.doms{d}.mod, main.matls, steps, fe_options);
+    res = fn_FE_entry_point(main.doms{d}.mod, main.matls, main.el_types, steps, fe_options);
 
     %Copy the pristine FMC data into this domain's results - scatterered
     %results will be added on to this

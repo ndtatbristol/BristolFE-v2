@@ -22,6 +22,8 @@ fe_options.time_pts = 2000;
 fe_options.field_output_every_n_frames = inf; %use this one to suppress animations
 fe_options.field_output_every_n_frames = 20;
 
+fe_options.dof_to_use = [1,2,4];%x, y and pressure
+
 %DEFINE THE GEOMETRY PARAMETRICALLY
 model_size = 10e-3;
 water_thickness = 3e-3;
@@ -85,20 +87,20 @@ abs_bdry_pts = [
 %Work out element size and Create the nodes and elements of the mesh
 el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 main.mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
-main.mod.el_types = {el_typ_solid, el_typ_fluid};
+main.el_types = {el_typ_solid, el_typ_fluid};
 
 %First set material of all elements to steel ...
 main.mod.el_mat_i(:) = steel_matl_i;
-main.mod.el_typ_i(:) = find(strcmp(main.mod.el_types, el_typ_solid));
+main.mod.el_typ_i(:) = find(strcmp(main.el_types, el_typ_solid));
 
 %... then set elements inside water boundary material to water
 els_in_water = fn_elements_in_region(main.mod, water_bdry_pts);
 main.mod.el_mat_i(els_in_water) = water_matl_i;
-main.mod.el_typ_i(els_in_water) = find(strcmp(main.mod.el_types, el_typ_fluid));
+main.mod.el_typ_i(els_in_water) = find(strcmp(main.el_types, el_typ_fluid));
 
 %Add interface elements - this is crucial otherwise there will be no
 %coupling between fluid and solid
-main.mod = fn_add_fluid_solid_interface_els(main.mod);
+[main.mod, main.el_types] = fn_add_fluid_solid_interface_els(main.mod, main.el_types);
 
 %Set source direction
 src_dir = 4;
@@ -123,8 +125,8 @@ scatterer_centre = [model_size / 2, water_thickness + scatterer_depth];
 inner_bdry = [-1,-1;-1,1;1,1;1,-1] / 2 * subdomain_size + scatterer_centre;
 scat_pts =   fn_2d_create_smooth_random_blob(0.4, 3, 360) * scatterer_size / 2 + scatterer_centre;
 
-main.doms{1}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdry_thickness);
-main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.matls, scat_pts, 0);
+main.doms{1}.mod = fn_create_subdomain(main.mod, inner_bdry, abs_bdry_thickness);
+main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.matls, main.el_types, scat_pts, 0);
 
 %Show the mesh
 if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing
@@ -162,7 +164,22 @@ main = fn_run_main_model(main, fe_options);
 
 %Animate validation results if requested
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    %View the time domain data and compare wih validation
+    figure;
+    i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
+    mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
+    plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
+    hold on;
+    plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
+    plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
+    ylim([-1,1]);
+    yyaxis right
+    plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
+    ylim([-60, 0]);
+    legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
+
     if ~isinf(fe_options.field_output_every_n_frames)
+        %Animate result
         figure;
         anim_options.repeat_n_times = 1;
         anim_options.db_range = [-40, 0];
@@ -171,17 +188,3 @@ if ~exist('scripts_to_run') %suppress graphics when running all scripts for test
         fn_run_animation(h_patches, main.doms{1}.val.trans{1}.fld, anim_options);
     end
 end
-
-%View the time domain data and compare wih validation
-figure;
-i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
-mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
-plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2)) / mv, 'k', 'LineWidth', 2);
-hold on;
-plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2)) / mv, 'g:', 'LineWidth', 2);
-plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
-ylim([-1,1]);
-yyaxis right
-plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
-ylim([-60, 0]);
-legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');

@@ -63,8 +63,8 @@ mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 
 %Associate elements with materials and element types
 mod.el_mat_i(:) = steel_matl_i;
-mod.el_types = {el_typ_solid};
-mod.el_typ_i(:) = find(strcmp(mod.el_types, el_typ_solid));
+el_types = {el_typ_solid};
+mod.el_typ_i(:) = find(strcmp(el_types, el_typ_solid));
 
 
 %Identify nodes along the source line to say where the loading will be 
@@ -97,22 +97,24 @@ end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-[res, mats] = fn_FE_entry_point(mod, matls, steps, fe_options);
+[res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
 
-%Show the history output as a function of time - here we just sum over all 
-%the nodes where displacments were recorded
-figure;
-plot(steps{1}.load.time, sum(res{1}.dsps));
-xlabel('Time (s)')
-
-%Animate result
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    %Show the history output as a function of time - here we just sum over all
+    %the nodes where displacments were recorded
     figure;
-    display_options.draw_elements = 0;
-    h_patch = fn_show_geometry(mod, matls, display_options);
-    anim_options.repeat_n_times = 1;
-    fn_run_animation(h_patch, res{1}.fld, anim_options);
+    plot(steps{1}.load.time, sum(res{1}.dsps));
+    xlabel('Time (s)')
+    
+    if ~isinf(fe_options.field_output_every_n_frames)
+        %Animate result
+        figure;
+        display_options.draw_elements = 0;
+        h_patch = fn_show_geometry(mod, matls, display_options);
+        anim_options.repeat_n_times = 1;
+        fn_run_animation(h_patch, res{1}.fld, anim_options);
+    end
 end

@@ -7,8 +7,8 @@ addpath(genpath('../code'));
 %one edge of the model. Can be applied either parallel (shear) or normal
 %(normal) to the surface according to which is selected below:
 
-% src_dir = 'shear'; 
-src_dir = 'normal'; 
+src_dir = 'shear'; 
+%src_dir = 'normal'; 
 
 show_geom_only = 0; %Set to 1 to just show geometry without running model
 
@@ -63,8 +63,8 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 %Create the nodes and elements of the mesh
 mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 mod.el_mat_i(:) = steel_matl_i;
-mod.el_types = {el_typ_solid};
-mod.el_typ_i(:) = find(strcmp(mod.el_types, el_typ_solid));
+el_types = {el_typ_solid};
+mod.el_typ_i(:) = find(strcmp(el_types, el_typ_solid));
 
 %Identify nodes along the source line to say where the loading will be 
 %when FE model is run
@@ -115,23 +115,25 @@ end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-res = fn_FE_entry_point(mod, matls, steps, fe_options);
+res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
 
-%Show the history output as a function of time - here we sum over all 
-%the nodes/DoFs where displacments were recorded with same weighting as 
-%applied forces to effectively simulate transducer in pulse-echo mode
-figure;
-plot(steps{1}.load.time, steps{1}.load.wts.' * res{1}.dsps);
-xlabel('Time (s)')
-
-%Animate result
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    %Show the history output as a function of time - here we sum over all 
+    %the nodes/DoFs where displacments were recorded with same weighting as 
+    %applied forces to effectively simulate transducer in pulse-echo mode
     figure;
-    display_options.draw_elements = 0;
-    h_patch = fn_show_geometry(mod, matls, display_options);
-    anim_options.repeat_n_times = 1;
-    fn_run_animation(h_patch, res{1}.fld, anim_options);
+    plot(steps{1}.load.time, steps{1}.load.wts.' * res{1}.dsps);
+    xlabel('Time (s)')
+    
+    if ~isinf(fe_options.field_output_every_n_frames)
+        %Animate result
+        figure;
+        display_options.draw_elements = 0;
+        h_patch = fn_show_geometry(mod, matls, display_options);
+        anim_options.repeat_n_times = 1;
+        fn_run_animation(h_patch, res{1}.fld, anim_options);
+    end
 end

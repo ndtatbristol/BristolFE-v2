@@ -1,4 +1,4 @@
-function mod = fn_remove_fluid_solid_interface_els(mod, varargin)
+function mod = fn_remove_fluid_solid_interface_els(mod, el_types, varargin)
 %SUMMARY
 %   Removes interface elements from model. Typically used when creating
 %   subdomains from another model and introducing scatterers.
@@ -10,7 +10,7 @@ end
 default_options.interface_el_name = 'ASI2D2';
 options = fn_set_default_fields(options, default_options);
 
-interface_el_i = find(strcmp(mod.el_types, options.interface_el_name));
+interface_el_i = find(strcmp(el_types, options.interface_el_name));
 if isempty(interface_el_i)
     %No interface elements defined, so none to remove!
     return

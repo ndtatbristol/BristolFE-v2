@@ -1,4 +1,4 @@
-function mod = fn_add_fluid_solid_interface_els(mod, varargin)
+function [mod, el_types] = fn_add_fluid_solid_interface_els(mod, el_types, varargin)
 %SUMMARY
 %   Adds the necessary interface elements between all solid and fluid
 %   elements in a model. Without these there is no coupling between the
@@ -13,24 +13,26 @@ default_options.fluid_el_names = {'AC2D3'};
 default_options.solid_el_names = {'CPE3'};
 options = fn_set_default_fields(options, default_options);
 
-%Add interface element to list of element types if not already there
-if ~any(strcmp(mod.el_types, options.interface_el_name))
-    mod.el_types{end + 1} = options.interface_el_name;
-end
-%Get interface element index
-interface_el_i = find(strcmp(mod.el_types, options.interface_el_name));
 %Get lists of indices of fluid and solid element types
-solid_el_i = find(ismember(mod.el_types, options.solid_el_names));
-fluid_el_i = find(ismember(mod.el_types, options.fluid_el_names));
+solid_el_i = find(ismember(el_types, options.solid_el_names));
+fluid_el_i = find(ismember(el_types, options.fluid_el_names));
 
 if isempty(solid_el_i) || isempty(fluid_el_i)
     %model has no solid or no fluid element types 
     return
 end
 
+%Add interface element to list of element types if not already there
+if ~any(strcmp(el_types, options.interface_el_name))
+    el_types{end + 1} = options.interface_el_name;
+end
+
+%Get interface element index
+interface_el_i = find(strcmp(el_types, options.interface_el_name));
+
 %New method using find interface function (should work for 2D and 3D up
 %to and including this function)
-[interface_facets, interface_el_solid, interface_el_fluid] = fn_find_interface(mod, ismember(mod.el_typ_i, solid_el_i), ismember(mod.el_typ_i, fluid_el_i));
+[interface_facets, interface_el_solid, interface_el_fluid] = fn_find_interface(mod, ismember(mod.el_typ_i, solid_el_i), ismember(mod.el_typ_i, fluid_el_i), el_types);
 
 if isempty(interface_facets)
     %No interface found, so do nothing

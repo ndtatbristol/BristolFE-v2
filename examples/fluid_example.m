@@ -1,5 +1,5 @@
 clearvars -except scripts_to_run
-close all;
+% close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 
@@ -37,7 +37,7 @@ src_dir = 4; %direction of forces applied: 1 = x, 2 = y, 3 = z (for solids), 4 =
 %Details of input signal
 centre_freq = 5e6;
 no_cycles = 4;
-max_time = 40e-6;
+max_time = 50e-6;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
@@ -45,6 +45,7 @@ els_per_wavelength = 10;
 %The default option is field_output_every_n_frames = inf, which means there
 %is no field output. Set to a finite value to get a field output.
 fe_options.field_output_every_n_frames = 10;
+
 
 %--------------------------------------------------------------------------
 
@@ -56,8 +57,8 @@ mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 
 %Associate elements with materials and element types
 mod.el_mat_i(:) = water_matl_i;
-mod.el_types = {el_typ_fluid};
-mod.el_typ_i(:) =  find(strcmp(mod.el_types, el_typ_fluid));
+el_types = {el_typ_fluid};
+mod.el_typ_i(:) =  find(strcmp(el_types, el_typ_fluid));
 
 
 %Identify nodes along the source line to say where the loading will be
@@ -89,23 +90,24 @@ end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-res = fn_FE_entry_point(mod, matls, steps, fe_options);
+res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
 
-%Show the history output as a function of time - here we just sum over all
-%the nodes where displacments were recorded
-figure;
-plot(steps{1}.load.time, sum(res{1}.dsps));
-xlabel('Time (s)')
-
-%Animate result
-if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
-
+if ~exist('scripts_to_run')%suppress graphics when running all scripts for testing
+    %Show the history output as a function of time - here we just sum over all
+    %the nodes where displacments were recorded
     figure;
-    display_options.draw_elements = 0;
-    h_patch = fn_show_geometry(mod, matls, display_options);
-    anim_options.repeat_n_times = 1;
-    fn_run_animation(h_patch, res{1}.fld, anim_options);
+    plot(steps{1}.load.time, sum(res{1}.dsps));
+    xlabel('Time (s)')
+    
+    %Animate result
+    if ~isinf(fe_options.field_output_every_n_frames)
+        figure;
+        display_options.draw_elements = 0;
+        h_patch = fn_show_geometry(mod, matls, display_options);
+        anim_options.repeat_n_times = 1;
+        fn_run_animation(h_patch, res{1}.fld, anim_options);
+    end
 end

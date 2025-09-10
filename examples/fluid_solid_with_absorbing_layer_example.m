@@ -1,5 +1,5 @@
 clearvars -except scripts_to_run
-close all;
+% close all;
 restoredefaultpath;
 addpath(genpath('../code'));
 
@@ -68,8 +68,8 @@ src_end_pts = [0.3, 0; 0.7, 0] * model_size;
 
 %Details of input signal
 centre_freq = 5e6;
-no_cycles = 4;
-max_time = 20e-6;
+no_cycles = 5;
+max_time = 50e-6;
 
 %Elements per wavelength (higher = more accurate and higher computational cost)
 els_per_wavelength = 10;
@@ -86,21 +86,21 @@ el_size = fn_get_suitable_el_size(matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
-mod.el_types = {el_typ_solid, el_typ_fluid};
+el_types = {el_typ_solid, el_typ_fluid};
 
 %First set material of all elements to steel ...
 mod.el_mat_i(:) = steel_matl_i;
-mod.el_typ_i(:) = find(strcmp(mod.el_types, el_typ_solid));
+mod.el_typ_i(:) = find(strcmp(el_types, el_typ_solid));
 
 %... then set elements inside water boundary material to water
 if include_fluid_region
     els_in_water = fn_elements_in_region(mod, water_bdry_pts);
     mod.el_mat_i(els_in_water) = water_matl_i;
-    mod.el_typ_i(els_in_water) = find(strcmp(mod.el_types, el_typ_fluid));
+    mod.el_typ_i(els_in_water) = find(strcmp(el_types, el_typ_fluid));
     
     %Add interface elements - this is crucial otherwise there will be no
     %coupling between fluid and solid
-    mod = fn_add_fluid_solid_interface_els(mod);
+    [mod, el_types] = fn_add_fluid_solid_interface_els(mod, el_types);
     
     %Set source direction
     src_dir = 4; %volumetric source if fluid region is used as source will be in fluid
@@ -124,6 +124,7 @@ steps{1}.load.frc_dfs = ones(size(steps{1}.load.frc_nds)) * src_dir;
 %be applied at all frc_nds/frc_dfs simultaneously; alternatively it can be a matrix
 %of different time signals for each frc_nds/frc_dfs
 time_step = fn_get_suitable_time_step(matls, el_size);
+
 steps{1}.load.time = 0: time_step:  max_time;
 steps{1}.load.frcs = fn_gaussian_pulse(steps{1}.load.time, centre_freq, no_cycles);
 
@@ -146,22 +147,24 @@ end
 %--------------------------------------------------------------------------
 %RUN THE MODEL
 
-res = fn_FE_entry_point(mod, matls, steps, fe_options);
+res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS
 
-%Show the history output as a function of time - here we just sum over all 
-%the nodes where displacments were recorded
-figure;
-plot(steps{1}.load.time, sum(res{1}.dsps));
-xlabel('Time (s)')
-
-%Animate result
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    %Show the history output as a function of time - here we just sum over all 
+    %the nodes where displacments were recorded
     figure;
-    display_options.draw_elements = 0; %makes it easier to see waves if element edges not drawn
-    h_patch = fn_show_geometry(mod, matls, display_options);
-    anim_options.repeat_n_times = 1;
-    fn_run_animation(h_patch, res{1}.fld, anim_options);
+    plot(steps{1}.load.time, sum(res{1}.dsps));
+    xlabel('Time (s)')
+    
+    %Animate result
+    if ~isinf(fe_options.field_output_every_n_frames)
+        figure;
+        display_options.draw_elements = 0; %makes it easier to see waves if element edges not drawn
+        h_patch = fn_show_geometry(mod, matls, display_options);
+        anim_options.repeat_n_times = 1;
+        fn_run_animation(h_patch, res{1}.fld, anim_options);
+    end
 end

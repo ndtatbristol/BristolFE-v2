@@ -1,4 +1,4 @@
-function dm_mod = fn_create_subdomain(mn_mod, matls, inner_bdry, abs_layer_thick, varargin)
+function dm_mod = fn_create_subdomain(mn_mod, inner_bdry, abs_layer_thick, varargin)
 %New version - based on tidier way of getting layers
 %Needs to return something like this
     %             nds: [11424×2 double]
@@ -22,6 +22,9 @@ end
 if isfield(dm_mod, 'design_centre_freq')
     dm_mod = rmfield(dm_mod, 'design_centre_freq');
 end
+if isfield(dm_mod, 'el_types')
+    dm_mod = rmfield(dm_mod, 'el_types');
+end
 
 %Create vector that will hold indices associating nodes with the 4 boundary
 %layers in the subdomain
@@ -30,7 +33,7 @@ dm_mod.inner_bndry_pts = inner_bdry;
 
 %Get elements in region
 el_used = fn_elements_in_region(dm_mod, inner_bdry);
-dm_mod.main_int_el_i = find(el_used); %the indices of the internal els in the main model for this sub-domain (need to be identifiable when doing validation models)
+%dm_mod.main_int_el_i = find(el_used); %the indices of the internal els in the main model for this sub-domain (need to be identifiable when doing validation models)
 
 %Work out and assign bdry nodes to layers
 for i = 1:4
@@ -75,7 +78,7 @@ dm_mod.bdry_lyrs = dm_mod.bdry_lyrs(old_nds);
 free_ed = fn_find_free_edges(dm_mod.els);
 
 dm_mod.outer_bndry_pts = [dm_mod.nds(free_ed, 1), dm_mod.nds(free_ed, 2)];
-dm_mod.int_el_i = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
+% dm_mod.int_el_i = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
 
 end
 

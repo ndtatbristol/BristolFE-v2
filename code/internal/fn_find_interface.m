@@ -1,10 +1,15 @@
-function [interface_facets, e1, e2] = fn_find_interface(mod, el_i1, el_i2)
+function [interface_facets, e1, e2] = fn_find_interface(mod, el_i1, el_i2, varargin)
 %Returns matrix of 2-node line segments (2D) or n-node polygons (3D) at
 %interface between mod.els(el_i1,:) and mod.els(el_i2,:). Node numbering of
 %facets is NOT guaranteed to be consistent
 
 %Used by fn_add_fluid_solid_interface to generate nodes of interface
 %elements and fn_add_crack_{2/3}d to indentify facets of crack surface
+if numel(varargin) < 1
+    el_types = mod.el_types;
+else
+    el_types = varargin{1};
+end
 
 if any(el_i1 & el_i2)
     error('Element sets must not contain any common elements')
@@ -19,8 +24,8 @@ end
 
 %Get lists of faces for both element sets
 
-fcs(1).data = fn_faces_from_els(mod.els(el_i1,:), mod.el_typ_i(el_i1), mod.el_types);
-fcs(2).data = fn_faces_from_els(mod.els(el_i2,:), mod.el_typ_i(el_i2), mod.el_types);
+fcs(1).data = fn_faces_from_els(mod.els(el_i1,:), mod.el_typ_i(el_i1), el_types);
+fcs(2).data = fn_faces_from_els(mod.els(el_i2,:), mod.el_typ_i(el_i2), el_types);
 
 %Loop over every face in set 1 and flag any that are in set 2
 % max_nds_per_facet = 0; %also get maximum number of nodes per facet

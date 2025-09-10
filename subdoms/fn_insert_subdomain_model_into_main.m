@@ -1,4 +1,4 @@
-function mod = fn_insert_subdomain_model_into_main(mn_mod, dm_mod, matls)
+function mod = fn_insert_subdomain_model_into_main(mn_mod, dm_mod)%, matls, el_types)
 %Can delete matls argument after debugging - used for plotting only
 % figure;h = fn_show_geometry(dm_mod, matls, []);
 
@@ -10,11 +10,18 @@ end
 
 mod = mn_mod;
 
+% for i = 1:numel(dm_mod.el_types)
+%     if all(strcmp(dm_mod.el_types{i}, mod.el_types) == 0)
+%         mod.el_types{end + 1} = dm_mod.el_types{i};
+%     end
+% end
 
 
-%Remove the elements from mmain odel that are inside region
-els_in_use = ones(size(mod.els, 1), 1);
-els_in_use(dm_mod.main_int_el_i) = 0;
+
+%Remove the elements from main model that are inside region
+% els_in_use = ones(size(mod.els, 1), 1);
+% els_in_use(dm_mod.main_int_el_i) = 0;
+els_in_use = ~fn_elements_in_region(mod, dm_mod.inner_bndry_pts);
 [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(els_in_use, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
 
 % figure;h = fn_show_geometry(mod, matls, []);
@@ -26,7 +33,9 @@ mod.nds = [mod.nds; dm_mod.nds];
 
 
 %remove elements in subdomain that are outside region
-[~, ~, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i] = fn_remove_unused_elements(dm_mod.int_el_i, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i);
+els_in_use = fn_elements_in_region(dm_mod, dm_mod.inner_bndry_pts);
+% [~, ~, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i] = fn_remove_unused_elements(dm_mod.int_el_i, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i);
+[~, ~, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i] = fn_remove_unused_elements(els_in_use, dm_mod.els, dm_mod.el_mat_i, dm_mod.el_abs_i, dm_mod.el_typ_i);
 
 % figure;h = fn_show_geometry(dm_mod, matls, []);
 

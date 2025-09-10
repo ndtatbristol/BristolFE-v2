@@ -109,7 +109,7 @@ steps{1}.mon.dfs = steps{1}.load.frc_dfs;
 %RUN THE MODEL
 % fe_options.solver_mode = 'vel at curent time step';
 fe_options.dynamic_solver_version = 'v6';
-[res, mats] = fn_FE_entry_point(mod, matls, steps, fe_options);
+[res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options);
 
 %--------------------------------------------------------------------------
 %SHOW THE RESULTS

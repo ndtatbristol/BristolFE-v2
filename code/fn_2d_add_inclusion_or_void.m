@@ -1,4 +1,4 @@
-function mod = fn_2d_add_inclusion_or_void(mod, matls, scat_pts, scat_matl)
+function mod = fn_2d_add_inclusion_or_void(mod, matls, el_types, scat_pts, scat_matl)
 %SUMMARY
 %   Adds scatterer to existing model by turning all elements inside
 %   scat_pts to either matl(scat_matl) or void if = scat_matl
@@ -7,7 +7,7 @@ function mod = fn_2d_add_inclusion_or_void(mod, matls, scat_pts, scat_matl)
 interface_el_name = 'ASI2D2';
 
 %Remove interface elements if there are any
-mod = fn_remove_fluid_solid_interface_els(mod);
+mod = fn_remove_fluid_solid_interface_els(mod, el_types);
 % els_in_use = ~strcmp(mod.el_typ_i, interface_el_name);
 % [~, ~, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i] = fn_remove_unused_elements(els_in_use, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i);
 
@@ -25,7 +25,7 @@ else
 end
 
 %Add interface elements if needed
-mod = fn_add_fluid_solid_interface_els(mod);
+mod = fn_add_fluid_solid_interface_els(mod, el_types);
 
 %Set flag on which elements are within domain
 mod.int_el_i = fn_elements_in_region(mod, mod.inner_bndry_pts);

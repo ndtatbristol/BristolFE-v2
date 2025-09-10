@@ -1,4 +1,4 @@
-function varargout = fn_pogoFE(mod, matls, steps, fe_options)
+function varargout = fn_pogoFE(mod, matls, el_types, steps, fe_options)
 %USAGE
 %   res = fn_pogoFE(mod, matls, steps, fe_options)
 %   [res, mats] = fn_pogoFE(mod, matls, steps, fe_options)
@@ -13,7 +13,8 @@ function varargout = fn_pogoFE(mod, matls, steps, fe_options)
 %INPUTS
 %   mod - description of mesh including nodes, elements, material
 %   indices, and possibly absorbing indices if absorbing layers are used.
-%   matls - description of materials used in mod
+%   matls - cell array of materials used in mod
+%   el_types - cell array of element types used in mod
 %   steps - description of one or more (use cell array) steps in which
 %       loads are applied, including details of the load and what is
 %       recorded
@@ -169,8 +170,8 @@ model.elTypeRefs = mod.el_typ_i';                   %- which of the element type
 model.matTypeRefs = mod.el_mat_i';                  % - which of the material types each element refers to, length nEls
 model.orientRefs = zeros(size(model.matTypeRefs));                   %- which of the orientations each element refers to, length nEls
 
-for n = 1:numel(mod.el_types)
-    model.elTypes{n}.name = mod.el_types{n};       % - element name (matching Abaqus library typically)
+for n = 1:numel(el_types)
+    model.elTypes{n}.name = el_types{n};       % - element name (matching Abaqus library typically)
     model.elTypes{n}.paramsType = 0;                %This will need changing for damping - parameters associated with the element type - usually just 0
 end
 

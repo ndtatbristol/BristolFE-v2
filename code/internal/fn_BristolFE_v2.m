@@ -1,4 +1,4 @@
-function varargout = fn_BristolFE_v2(mod, matls, steps, fe_options)
+function varargout = fn_BristolFE_v2(mod, matls, el_types, steps, fe_options)
 %USAGE
 %   res = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %   [res, mats] = fn_BristolFE_v2(mod, matls, steps, fe_options)
@@ -8,7 +8,8 @@ function varargout = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %INPUTS
 %   mod - description of mesh including nodes, elements, material
 %   indices, and possibly absorbing indices if absorbing layers are used.
-%   matls - description of materials used in mod
+%   matls - cell array of materials used in mod
+%   el_types - cell array of element types used in mod
 %   steps - description of one or more (use cell array) steps in which
 %       loads are applied, including details of the load and what is
 %       recorded
@@ -21,7 +22,6 @@ function varargout = fn_BristolFE_v2(mod, matls, steps, fe_options)
 %eEtermine whether or not to use GPU if one is available
 default_options.use_gpu_if_available = 1;
 %Versions of key functions to use
-default_options.global_matrix_builder_version = 'v5';
 default_options.dynamic_solver_version = 'v6';
 %Whether to calculate velocities at current time step (stable) or last half
 %step (not always stable but maybe faster)
@@ -39,24 +39,19 @@ end
 %Check inputs - are all mesh and material details consistent?
 
 %If mod.el_typ_i not specified at this point, generate it based on matls
-if ~isfield(mod, 'el_typ_i')
-    % mod.el_typ_i = {matls{mod.el_mat_i}.el_typ};
-    mod.el_typ_i = cellfun(@(s) s.('el_typ'), matls(mod.el_mat_i), 'UniformOutput', false);
-    % mod.el_typ_i = mod.el_typ_i(:);
-end
-
-if ~isfield(mod, 'el_abs_i')
-    mod.el_abs_i = zeros(size(mod.el_mat_i));
-end
+% if ~isfield(mod, 'el_typ_i')
+%     % mod.el_typ_i = {matls{mod.el_mat_i}.el_typ};
+%     mod.el_typ_i = cellfun(@(s) s.('el_typ'), matls(mod.el_mat_i), 'UniformOutput', false);
+%     % mod.el_typ_i = mod.el_typ_i(:);
+% end
+% 
+% if ~isfield(mod, 'el_abs_i')
+%     mod.el_abs_i = zeros(size(mod.el_mat_i));
+% end
 
 
 %Build the global matrices
-switch fe_options.global_matrix_builder_version
-    case 'v4'
-        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v4(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, fe_options);
-    otherwise %v5 is default
-        [mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, mod.el_types, fe_options);
-end
+[mats.K, mats.C, mats.M, mats.gl_lookup] = fn_build_global_matrices_v5(mod.nds, mod.els, mod.el_mat_i, mod.el_abs_i, mod.el_typ_i, matls, el_types, fe_options);
 
 if isempty(steps)
     %Useful if only matrices are required
@@ -112,16 +107,9 @@ for s = 1:numel(steps)
         else
             fn_console_output('')
         end
-        switch fe_options.dynamic_solver_version
-            case'v5'
-                [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
-                    fn_explicit_dynamic_solver_v5(mats.K, mats.C, mats.M, t, ...
-                    frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available);
-            otherwise %v6 is now the default
-                [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
-                    fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
-                    frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
-        end
+        [mon_dsps, fld, mon_frcs, res{s}.fld_time] = ...
+            fn_explicit_dynamic_solver_v6(mats.K, mats.C, mats.M, t, ...
+            frc_gi, frcs, dsp_gi, dsps, hist_gi, fe_options.field_output_every_n_frames, fe_options.use_gpu_if_available, fe_options.field_output_type, fe_options.solver_mode, fe_options.solver_precision);
 
         %Parse the monitored history outputs
         if isfield(steps{s}.mon, 'nds')

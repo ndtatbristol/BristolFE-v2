@@ -60,6 +60,8 @@ els_per_wavelength = 10;
 %functions and once to generate the field output.
 fe_options.field_output_every_n_frames = inf;
 % fe_options.field_output_every_n_frames = 10;
+
+fe_options.dof_to_use = [1,2];%x, y and pressure
 %--------------------------------------------------------------------------
 %PREPARE THE MESH
 
@@ -68,9 +70,9 @@ el_size = fn_get_suitable_el_size(main.matls, centre_freq, els_per_wavelength);
 
 %Create the nodes and elements of the mesh
 main.mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
-main.mod.el_types = {el_typ_solid};
+main.el_types = {el_typ_solid};
 main.mod.el_mat_i(:) = steel_matl_i;
-main.mod.el_typ_i(:) = find(strcmp(main.mod.el_types, el_typ_solid));
+main.mod.el_typ_i(:) = find(strcmp(main.el_types, el_typ_solid));
 
 %Timestep
 main.mod.max_safe_time_step = fn_get_suitable_time_step(main.matls, el_size);
@@ -94,8 +96,8 @@ subdomain_size = model_size / 10;
 scatterer_size = model_size / 10 * 0.8;
 inner_bdry = [cos(a), sin(a)] / 2 * subdomain_size + [1, 1] * model_size / 2;
 scat_pts = [cos(a), sin(a)] / 2 * scatterer_size + [1, 1] * model_size / 2;
-main.doms{1}.mod = fn_create_subdomain(main.mod, main.matls, inner_bdry, abs_bdry_thickness);
-main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.matls, scat_pts, 0);
+main.doms{1}.mod = fn_create_subdomain(main.mod, inner_bdry, abs_bdry_thickness);
+main.doms{1}.mod = fn_2d_add_inclusion_or_void(main.doms{1}.mod, main.matls, main.el_types, scat_pts, 0);
 
 %Show the mesh
 if ~exist('scripts_to_run') && show_geom_only %suppress graphics when running all scripts for testing
@@ -134,7 +136,22 @@ main = fn_run_main_model(main, fe_options);
 
 %Animate validation results if requested
 if ~exist('scripts_to_run') %suppress graphics when running all scripts for testing
+    %View the time domain data and compare wih validation
+    figure;
+    i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
+    mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
+    plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2) / mv), 'k', 'LineWidth', 2);
+    hold on;
+    plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2) / mv), 'g:', 'LineWidth', 2);
+    plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
+    ylim([-1,1]);
+    yyaxis right
+    plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
+    ylim([-60, 0]);
+    legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
+
     if ~isinf(fe_options.field_output_every_n_frames)
+        %Animate result
         figure;
         anim_options.repeat_n_times = 1;
         anim_options.db_range = [-40, 0];
@@ -145,20 +162,6 @@ if ~exist('scripts_to_run') %suppress graphics when running all scripts for test
         end
     end
 end
-
-%View the time domain data and compare wih validation
-figure;
-i = max(find(abs(main.inp.sig) > max(abs(main.inp.sig)) / 1000));
-mv = max(abs(sum(main.doms{1}.res.fmc.time_data(i:end,: ), 2)));
-plot(main.doms{1}.res.fmc.time, real(sum(main.doms{1}.res.fmc.time_data, 2) / mv), 'k', 'LineWidth', 2);
-hold on;
-plot(main.doms{1}.val.fmc.time, real(sum(main.doms{1}.val.fmc.time_data, 2) / mv), 'g:', 'LineWidth', 2);
-plot(main.res.fmc.time, real(sum(main.res.fmc.time_data, 2)) / mv, 'b');
-ylim([-1,1]);
-yyaxis right
-plot(main.doms{1}.res.fmc.time, 20 * log10(abs(sum(main.doms{1}.res.fmc.time_data, 2) - sum(main.doms{1}.val.fmc.time_data, 2)) / mv));
-ylim([-60, 0]);
-legend('Sub-domain method', 'Validation', 'Pristine', 'Difference (dB)');
 
 
 

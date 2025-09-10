@@ -31,8 +31,8 @@ end
 
 
 
-fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(main.mod.el_types(unique(main.mod.el_typ_i)), fe_options.dof_to_use);
-fe_options = fn_FE_entry_point(main.mod, main.matls, [], fe_options);%this call is necessary in order get the actual DoFs available from chosen solver
+% fe_options.dof_to_use = fn_find_dof_in_use_and_max_dof_per_el(main.el_types, fe_options.dof_to_use);
+fe_options = fn_FE_entry_point(main.mod, main.matls, main.el_types, [], fe_options);%this call is necessary in order get the actual DoFs available from chosen solver
 
 
 %Input signal and time-axis used for all simulations
@@ -112,7 +112,7 @@ for m = 1:numel(main_modes)
             fn_increment_indent_level;
             %Run the model for each transducer (need boundary data whether
             %transmitter or receiver anyway
-            [fe_res, main.res.mats] = fn_FE_entry_point(main.mod, main.matls, steps, fe_options);
+            [fe_res, main.res.mats] = fn_FE_entry_point(main.mod, main.matls, main.el_types, steps, fe_options);
             
 
             %Parse the impulse data
@@ -137,10 +137,10 @@ for m = 1:numel(main_modes)
                 fn_console_output(sprintf('Executing validation model for sub-domain %i/%i\n', d, numel(fe_options.doms_to_run)));
                 fn_increment_indent_level;
                 %Create a new model of whole domain containing the scatterer
-                main.doms{d}.val_mod = fn_insert_subdomain_model_into_main(main.mod, main.doms{d}.mod, main.matls);
+                main.doms{d}.val_mod = fn_insert_subdomain_model_into_main(main.mod, main.doms{d}.mod);%, main.matls);
 
                 %Run the model for each transducer
-                fe_res = fn_FE_entry_point(main.doms{d}.val_mod, main.matls, steps, fe_options);
+                fe_res = fn_FE_entry_point(main.doms{d}.val_mod, main.matls, main.el_types, steps, fe_options);
 
                 %Parse the field data for movies if requested
                 if ~isinf(fe_options.field_output_every_n_frames)

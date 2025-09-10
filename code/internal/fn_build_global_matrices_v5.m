@@ -50,7 +50,8 @@ fn_console_output(sprintf('Global matrix builder v5 (nodes = %i, elements = %i, 
 t1 = clock;
 
 %find unique element types, max DoF per element, and actual DoFs in use
-unique_typs = el_types(unique(el_typ_i));
+unique_typ_i = unique(el_typ_i);
+unique_typs = el_types(unique_typ_i);
 [unique_df, max_el_df] = fn_find_dof_in_use_and_max_dof_per_el(unique_typs, fe_options.dof_to_use);
 max_df = max(unique_df);
 
@@ -68,7 +69,7 @@ Cvec = zeros(total_el_dfs, 1);
 i1 = 1;
 for t = 1:numel(unique_typs)
     fn_el_mats = str2func(['fn_el_', unique_typs{t}]);
-    el_i = el_typ_i == t; %logical indices of elements of this type
+    el_i = el_typ_i == unique_typ_i(t); %logical indices of elements of this type
 
     %Find unique element matls for this type
     un_mat = unique(el_mat_i(el_i));

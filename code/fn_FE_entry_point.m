@@ -1,14 +1,15 @@
-function varargout = fn_FE_entry_point(mod, matls, steps, fe_options)
+function varargout = fn_FE_entry_point(mod, matls, el_types, steps, fe_options)
 %SUMMARY
 %   Common entry point for different FE solvers.
 %USAGE
-%   res = fn_FE_entry_point(mod, matls, steps, fe_options)
-%   [res, mats] = fn_FE_entry_point(mod, matls, steps, fe_options)
+%   res = fn_FE_entry_point(mod, matls, el_types, steps, fe_options)
+%   [res, mats] = fn_FE_entry_point(mod, matls, el_types, steps, fe_options)
 %   fe_options = fn_FE_entry_point([], [], [], fe_options)
 %INPUTS
 %   mod - description of mesh including nodes, elements, material
 %   indices, and possibly absorbing indices if absorbing layers are used.
-%   matls - description of materials used in mod
+%   matls - cell array of materials used in mod
+%   el_types - cell array of element types used in mod
 %   steps - description of one or more (use cell array) steps in which
 %       loads are applied, including details of the load and what is
 %       recorded
@@ -55,9 +56,9 @@ t1 = clock;
 fn_console_output(['Starting FE solver (', fe_options.solver, ')\n'])
 fn_increment_indent_level;
 if nargout == 1
-    varargout{1} = fn_solver(mod, matls, steps, fe_options);
+    varargout{1} = fn_solver(mod, matls, el_types, steps, fe_options);
 elseif nargout == 2
-    [varargout{1}, varargout{2}] = fn_solver(mod, matls, steps, fe_options);
+    [varargout{1}, varargout{2}] = fn_solver(mod, matls, el_types, steps, fe_options);
 end
 fn_decrement_indent_level;
 fn_console_output(sprintf(['FE solver (', fe_options.solver, ') completed in %.2f secs\n'], etime(clock, t1)));
