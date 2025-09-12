@@ -43,8 +43,9 @@ for i = 1:numel(un_el_typ_i)
     j = el_typ_i == un_el_typ_i(i);
 
     el_faces{i}.el_typ_i = ei;
-    el_faces{i}.fcs = reshape(els(j, fc_i), [], size(fc_i, 2));
-    el_faces{i}.el_i = reshape(el_i(j) * ones(1, size(fc_i, 1)), [], 1);
+    el_faces{i}.fcs = reshape(els(j, fc_i')', size(fc_i, 2), [])';
+    el_faces{i}.el_i = reshape(reshape(el_i(j), 1, []) .* ones(size(fc_i, 1), 1), [], 1);
+
 end
 
 end

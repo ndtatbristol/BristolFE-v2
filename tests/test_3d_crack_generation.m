@@ -7,7 +7,7 @@ model_size = 10;
 crnr_pts = [
     0, 0, 0
     1, 1, 1] * model_size;
-el_size = 0.1;
+el_size = 2;
 cod = el_size / 10;
 
 steel_mat_i = 1;

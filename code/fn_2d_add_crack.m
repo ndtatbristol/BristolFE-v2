@@ -1,6 +1,8 @@
 function mod = fn_2d_add_crack(mod, crack_vtcs, varargin)
 %USAGE
 %   mod = fn_2d_add_crack(mod, crack_vtcs, [crack_fcs, cod])
+%AUTHOR
+%   Paul Wilcox (2025)
 %SUMMARY
 %   Adds a crack into a 2D by identifying nearest element
 %   edges/faces and 'splitting' model along them, by duplicating nodes.

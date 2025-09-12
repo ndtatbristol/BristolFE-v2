@@ -23,7 +23,7 @@ function mod = fn_add_crack(mod, crack_vtcs, crack_fcs, cod)
 ndim = size(mod.nds, 2);
 
 if ndim == 3
-    [crack_fcs, crack_eds, ed_fcs] = fn_consistent_facet_nodes(crack_fcs);
+    [crack_fcs, crack_eds, ~] = fn_consistent_facet_nodes(crack_fcs);
 end
 
 %Get signed distance of each element from crack
@@ -43,7 +43,7 @@ crack_nd_i = unique(interface_fcs(:));
 crack_nds = mod.nds(crack_nd_i, :);
 
 %Get details about each crack_nd relative to crack surface
-[d, nearest_pts, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_signed_dist_to_bdry(crack_nds, crack_vtcs, crack_fcs);
+[~, ~, norm_vecs, type_of_nearest_entity, nearest_entity, bdry_edges] = fn_signed_dist_to_bdry(crack_nds, crack_vtcs, crack_fcs);
 
 switch ndim
     case 2
@@ -56,7 +56,7 @@ switch ndim
     case 3
         %Identify edge of crack surface by edges that only appear once in original
         %list
-        [tmp, ia, ic] = unique(sort(crack_eds, 2), 'rows');
+        [tmp, ~, ic] = unique(sort(crack_eds, 2), 'rows');
         edge_edges = tmp(accumarray(ic, 1) == 1, :);
         edge_edge_i = find(ismember(sort(bdry_edges, 2), edge_edges, 'rows'));
 
@@ -79,7 +79,7 @@ mod.nds(crack_nd_i, :) = mod.nds(crack_nd_i, :) + norm_vecs .* cod;
 crack_nds = crack_nds - norm_vecs .* cod;
 
 %Duplicate crack nodes
-new_node_indices = [1:numel(crack_nd_i)]' + size(mod.nds,1);
+new_node_indices = (1:numel(crack_nd_i))' + size(mod.nds,1);
 mod.nds = [mod.nds; crack_nds];
 
 %Finally loop through crack_nds and for any occurences in elements on -ve 

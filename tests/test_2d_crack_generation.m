@@ -19,31 +19,27 @@ matls{steel_mat_i}.name = 'Steel';
 
 el_typ_solid = 'CPE3'; 
 
-%Crack nodes
-crack_vtcs1 = [
-    2, 3
-    4, 4
-    7, 8];
-crack_vtcs2 = [
-    2, 6
-    8, 1];
-crack_vtcs3 = [
-    1, 1
-    1, 2
-    2,2
-    2,1
-    1,1];
+%Defined crack vertices - a nice branched crack with some roughness
+pts1 = 20;
+len1 = 5;
+pts2 = 10;
+len2 = 2.5;
+%top part
+crack_vtcs1 = [-el_size, 5] + fn_2d_random_walk(pts1, len1/pts1, 0, linspace(0,1,pts1) * pi/8, 0.4);
+%branch start (mid way along top branch)
+crack_vtcs2 = crack_vtcs1(round(pts1 / 2), :) + fn_2d_random_walk(pts2, len2/pts2, 0, -pi/8-linspace(0,1,pts2) * pi/8, 0.4);
 
-
+%Create the mesh
 mod = fn_2d_structured_mesh_triangular_els(bdry_pts, el_size);
 mod.el_types = {el_typ_solid};
 mod.el_typ_i(:) = find(strcmp(el_typ_solid, mod.el_types));
 mod.el_mat_i(:) = steel_mat_i;
 
-mod = fn_2d_add_crack(mod, crack_vtcs1);
+%Add the cracks
+mod = fn_2d_add_crack(mod, crack_vtcs1, [], cod);
 mod = fn_2d_add_crack(mod, crack_vtcs2, [], cod);
-mod = fn_2d_add_crack(mod, crack_vtcs3, [], cod);
 
+%Plot result
 figure;
 options = [];
 fn_show_geometry(mod, matls, options);

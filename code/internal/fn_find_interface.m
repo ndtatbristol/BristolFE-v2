@@ -28,28 +28,6 @@ el_i = (1:size(mod.els, 1))';
 fcs(1).data = fn_faces_from_els(mod.els(el_i1,:), el_i(el_i1), mod.el_typ_i(el_i1), el_types);
 fcs(2).data = fn_faces_from_els(mod.els(el_i2,:), el_i(el_i2), mod.el_typ_i(el_i2), el_types);
 
-%Loop over every face in set 1 and flag any that are in set 2
-% max_nds_per_facet = 0; %also get maximum number of nodes per facet
-% no_facets = 0;
-% for i1 = 1:numel(fcs(1).data)
-%     max_nds_per_facet = max(max_nds_per_facet, size(fcs(1).data{i1}.fcs, 2));
-%     fcs(1).data{i1}.el_in_set2 = zeros(size(fcs(1).data{i1}.fcs, 1), 1);
-%     for j1 = 1:size(fcs(1).data{i1}.fcs, 1)
-%         fc1 = sort(fcs(1).data{i1}.fcs(j1, :), 2);
-%         for i2 = 1:numel(fcs(2).data)
-%             if size(fcs(2).data{i2}.fcs, 2) ~= numel(fc1)
-%                 continue
-%             end
-%             fc2 = sort(fcs(2).data{i1}.fcs, 2);
-%             k1 = all(fc2 == fc1, 2);
-%             if nnz(k1) > 0
-%                 fcs(1).data{i1}.el_in_set2(j1) = fcs(2).data{i2}.el_i(k1);
-%             end
-%         end
-%     end
-%     no_facets = no_facets + nnz(fcs(1).data{i1}.el_in_set2);
-% end
-
 %new version
 max_nds_per_facet = 0; %also get maximum number of nodes per facet
 no_facets = 0;
