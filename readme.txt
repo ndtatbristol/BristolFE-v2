@@ -1,3 +1,5 @@
+NOTE: This version will no longer be supported or updated. Please use BristolFE v3 instead (also available on Github at https://github.com/ndtatbristol/BristolFE-v3)
+
 BristolFE v2 - Paul Wilcox
 =======================
 
